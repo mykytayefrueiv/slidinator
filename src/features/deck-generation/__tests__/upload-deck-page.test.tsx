@@ -11,7 +11,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest"
 import type { GenerateDeckResult } from "@/server/deck-generation/types"
 import type * as ReactStartModule from "@tanstack/react-start"
 
-import { UploadDeckPage } from "./upload-deck-page"
+import { UploadDeckPage } from "../upload-deck-page"
 
 const serverFunctionMocks = vi.hoisted(() => {
   const generateDeckServerFn = vi.fn()

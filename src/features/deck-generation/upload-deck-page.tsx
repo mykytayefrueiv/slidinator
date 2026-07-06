@@ -1,16 +1,11 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useServerFn } from "@tanstack/react-start"
-import {
-  AlertCircle,
-  ArrowLeft,
-  Download,
-  FileText,
-  Loader2,
-  Sparkles,
-} from "lucide-react"
+import { Loader2, Sparkles } from "lucide-react"
 import type { FormEvent } from "react"
 import { useState } from "react"
 
+import { ErrorAlert } from "@/components/error-alert"
+import { FileInput } from "@/components/file-input"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -24,7 +19,8 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { exportDeckPdf, generateDeck } from "@/server/deck-generation/api"
 import type { GenerateDeckResult } from "@/server/deck-generation/types"
-import { DeckPreview } from "./components/deck-preview"
+
+import { GeneratedDeckView } from "./components/generated-deck-view"
 
 export function UploadDeckPage() {
   const queryClient = useQueryClient()
@@ -106,56 +102,13 @@ export function UploadDeckPage() {
 
   if (result) {
     return (
-      <main className="grid min-h-svh place-items-center bg-[#f6f8f7] p-4 text-slate-950 lg:p-6">
-        <section className="flex h-[calc(100svh-32px)] w-full max-w-[1480px] min-w-0 flex-col rounded-lg border border-slate-200 bg-white p-4 shadow-sm lg:h-[calc(100svh-48px)]">
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-              <div className="flex min-w-0 items-start gap-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleBackToStart}
-                >
-                  <ArrowLeft />
-                  Back
-                </Button>
-                <div>
-                  <p className="text-xs font-semibold tracking-[0.16em] text-slate-500 uppercase">
-                    Shadow DOM preview
-                  </p>
-                  <h1 className="mt-1 text-xl font-semibold text-slate-950">
-                    Generated HTML deck
-                  </h1>
-                </div>
-              </div>
-              <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
-                {result.slideCount} generated slides
-              </span>
-              <Button
-                type="button"
-                className="bg-emerald-700 hover:bg-emerald-800"
-                disabled={exportPdfMutation.isPending}
-                onClick={() => exportPdfMutation.mutate(result.deckHtml)}
-              >
-                {exportPdfMutation.isPending ? (
-                  <Loader2 className="animate-spin" />
-                ) : (
-                  <Download />
-                )}
-                {exportPdfMutation.isPending ? "Exporting" : "Download PDF"}
-              </Button>
-            </div>
-
-            {errorMessage ? (
-              <ErrorAlert message={errorMessage} className="mb-4" />
-            ) : null}
-
-            <div className="min-h-0 flex-1">
-              <DeckPreview html={result.deckHtml} />
-            </div>
-          </div>
-        </section>
-      </main>
+      <GeneratedDeckView
+        deck={result}
+        errorMessage={errorMessage}
+        isExporting={exportPdfMutation.isPending}
+        onBackToStart={handleBackToStart}
+        onDownloadPdf={() => exportPdfMutation.mutate(result.deckHtml)}
+      />
     )
   }
 
@@ -177,186 +130,72 @@ export function UploadDeckPage() {
           </div>
         </CardHeader>
 
-        <GenerationForm
-          referencePdf={referencePdf}
-          designPdf={designPdf}
-          extraPrompt={extraPrompt}
-          styleUrl={styleUrl}
-          isPending={generateMutation.isPending}
-          submitLabel="Generate"
-          pendingLabel="Generating"
-          errorMessage={errorMessage}
-          onReferencePdfChange={setReferencePdf}
-          onDesignPdfChange={setDesignPdf}
-          onExtraPromptChange={setExtraPrompt}
-          onStyleUrlChange={setStyleUrl}
-          onSubmit={handleSubmit}
-        />
+        <form onSubmit={handleSubmit}>
+          <CardContent className="grid gap-5">
+            <FileInput
+              id="referencePdf"
+              label="Reference PDF"
+              description="Source document for factual content."
+              file={referencePdf}
+              onChange={setReferencePdf}
+            />
+            <FileInput
+              id="designPdf"
+              label="Design PDF"
+              description="Visual reference for the deck style."
+              file={designPdf}
+              onChange={setDesignPdf}
+            />
+
+            <label className="grid gap-2">
+              <span className="text-sm font-semibold text-slate-800">
+                Extra prompt
+              </span>
+              <Textarea
+                value={extraPrompt}
+                onChange={(event) => setExtraPrompt(event.target.value)}
+                rows={4}
+                className="min-h-28 resize-y rounded-lg border-slate-300 bg-white text-sm leading-6 focus-visible:border-emerald-600 focus-visible:ring-emerald-100"
+                placeholder="Emphasize dosing, contraindications, or patient counseling points."
+              />
+            </label>
+
+            <label className="grid gap-2">
+              <span className="text-sm font-semibold text-slate-800">
+                Optional style URL
+              </span>
+              <Input
+                type="url"
+                value={styleUrl}
+                onChange={(event) => setStyleUrl(event.target.value)}
+                className="h-11 rounded-lg border-slate-300 bg-white text-sm focus-visible:border-emerald-600 focus-visible:ring-emerald-100"
+                placeholder="https://example.com/brand-guidelines"
+              />
+            </label>
+
+            {errorMessage ? <ErrorAlert message={errorMessage} /> : null}
+          </CardContent>
+
+          <CardFooter className="mt-2 flex-col items-stretch gap-3">
+            <Button
+              type="submit"
+              size="lg"
+              className="w-full bg-emerald-700 hover:bg-emerald-800"
+              disabled={generateMutation.isPending}
+            >
+              {generateMutation.isPending ? (
+                <Loader2 className="animate-spin" />
+              ) : (
+                <Sparkles />
+              )}
+              {generateMutation.isPending ? "Generating" : "Generate"}
+            </Button>
+            <p className="text-center text-xs leading-5 text-slate-500">
+              Required: both PDFs. Prompt and URL are optional.
+            </p>
+          </CardFooter>
+        </form>
       </Card>
     </main>
-  )
-}
-
-function GenerationForm({
-  referencePdf,
-  designPdf,
-  extraPrompt,
-  styleUrl,
-  isPending,
-  submitLabel,
-  pendingLabel,
-  errorMessage,
-  compact = false,
-  onReferencePdfChange,
-  onDesignPdfChange,
-  onExtraPromptChange,
-  onStyleUrlChange,
-  onSubmit,
-}: {
-  referencePdf: File | null
-  designPdf: File | null
-  extraPrompt: string
-  styleUrl: string
-  isPending: boolean
-  submitLabel: string
-  pendingLabel: string
-  errorMessage: string
-  compact?: boolean
-  onReferencePdfChange: (file: File | null) => void
-  onDesignPdfChange: (file: File | null) => void
-  onExtraPromptChange: (prompt: string) => void
-  onStyleUrlChange: (url: string) => void
-  onSubmit: (event: FormEvent<HTMLFormElement>) => void
-}) {
-  const spacingClassName = compact ? "px-0" : ""
-
-  return (
-    <form onSubmit={onSubmit}>
-      <CardContent className={`grid gap-5 ${spacingClassName}`}>
-        <FileInput
-          id="referencePdf"
-          label="Reference PDF"
-          description="Source document for factual content."
-          file={referencePdf}
-          onChange={onReferencePdfChange}
-        />
-        <FileInput
-          id="designPdf"
-          label="Design PDF"
-          description="Visual reference for the deck style."
-          file={designPdf}
-          onChange={onDesignPdfChange}
-        />
-
-        <label className="grid gap-2">
-          <span className="text-sm font-semibold text-slate-800">
-            Extra prompt
-          </span>
-          <Textarea
-            value={extraPrompt}
-            onChange={(event) => onExtraPromptChange(event.target.value)}
-            rows={4}
-            className="min-h-28 resize-y rounded-lg border-slate-300 bg-white text-sm leading-6 focus-visible:border-emerald-600 focus-visible:ring-emerald-100"
-            placeholder="Emphasize dosing, contraindications, or patient counseling points."
-          />
-        </label>
-
-        <label className="grid gap-2">
-          <span className="text-sm font-semibold text-slate-800">
-            Optional style URL
-          </span>
-          <Input
-            type="url"
-            value={styleUrl}
-            onChange={(event) => onStyleUrlChange(event.target.value)}
-            className="h-11 rounded-lg border-slate-300 bg-white text-sm focus-visible:border-emerald-600 focus-visible:ring-emerald-100"
-            placeholder="https://example.com/brand-guidelines"
-          />
-        </label>
-
-        {errorMessage ? <ErrorAlert message={errorMessage} /> : null}
-      </CardContent>
-
-      <CardFooter
-        className={`mt-2 flex-col items-stretch gap-3 ${spacingClassName}`}
-      >
-        <Button
-          type="submit"
-          size="lg"
-          className="w-full bg-emerald-700 hover:bg-emerald-800"
-          disabled={isPending}
-        >
-          {isPending ? <Loader2 className="animate-spin" /> : <Sparkles />}
-          {isPending ? pendingLabel : submitLabel}
-        </Button>
-        <p className="text-center text-xs leading-5 text-slate-500">
-          Required: both PDFs. Prompt and URL are optional.
-        </p>
-      </CardFooter>
-    </form>
-  )
-}
-
-function ErrorAlert({
-  message,
-  className = "",
-}: {
-  message: string
-  className?: string
-}) {
-  return (
-    <div
-      role="alert"
-      className={`flex gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 ${className}`}
-    >
-      <AlertCircle className="mt-0.5 size-4 shrink-0" />
-      <span>{message}</span>
-    </div>
-  )
-}
-
-function FileInput({
-  id,
-  label,
-  description,
-  file,
-  onChange,
-}: {
-  id: string
-  label: string
-  description: string
-  file: File | null
-  onChange: (file: File | null) => void
-}) {
-  return (
-    <label
-      htmlFor={id}
-      className="grid cursor-pointer gap-3 rounded-lg border border-slate-300 bg-slate-50 p-4 transition hover:border-emerald-500 hover:bg-emerald-50/40"
-    >
-      <span className="flex items-start gap-3">
-        <span className="grid size-10 shrink-0 place-items-center rounded-lg bg-white text-emerald-700 shadow-sm">
-          <FileText className="size-5" />
-        </span>
-        <span className="min-w-0">
-          <span className="block text-sm font-semibold text-slate-900">
-            {label}
-          </span>
-          <span className="block text-xs leading-5 text-slate-600">
-            {description}
-          </span>
-          <span className="mt-2 block truncate text-sm font-medium text-emerald-800">
-            {file ? file.name : "Choose a PDF"}
-          </span>
-        </span>
-      </span>
-      <input
-        id={id}
-        name={id}
-        type="file"
-        accept="application/pdf,.pdf"
-        className="sr-only"
-        onChange={(event) => onChange(event.target.files?.[0] ?? null)}
-      />
-    </label>
   )
 }
