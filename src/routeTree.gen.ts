@@ -10,33 +10,43 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PdfDeckIdRouteImport } from './routes/pdf.$deckId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PdfDeckIdRoute = PdfDeckIdRouteImport.update({
+  id: '/pdf/$deckId',
+  path: '/pdf/$deckId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/pdf/$deckId': typeof PdfDeckIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/pdf/$deckId': typeof PdfDeckIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/pdf/$deckId': typeof PdfDeckIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/pdf/$deckId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/pdf/$deckId'
+  id: '__root__' | '/' | '/pdf/$deckId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  PdfDeckIdRoute: typeof PdfDeckIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +58,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/pdf/$deckId': {
+      id: '/pdf/$deckId'
+      path: '/pdf/$deckId'
+      fullPath: '/pdf/$deckId'
+      preLoaderRoute: typeof PdfDeckIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  PdfDeckIdRoute: PdfDeckIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

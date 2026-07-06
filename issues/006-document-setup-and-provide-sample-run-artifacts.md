@@ -1,6 +1,6 @@
 # Document Setup and Provide Sample Run Artifacts
 
-Labels: ready-for-agent
+Labels: done
 
 ## Parent
 
@@ -13,7 +13,7 @@ Document how to run and evaluate the prototype, including required environment v
 ## Acceptance criteria
 
 - [ ] README or project documentation explains local setup, required environment variables, and run commands.
-- [ ] Documentation identifies OpenRouter as the AI provider through AI SDK.
+- [ ] Documentation identifies OpenAI as the AI provider through AI SDK.
 - [ ] Documentation explains the upload/generate/preview/download flow.
 - [ ] Documentation explains that HTML is the editable artifact and PDF is an export.
 - [ ] Documentation includes the coordinate/editing architecture note at a high level, while making clear rectangle UI is out of scope for v1.

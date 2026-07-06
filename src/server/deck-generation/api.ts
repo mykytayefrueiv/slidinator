@@ -1,7 +1,9 @@
 import { createServerFn } from "@tanstack/react-start"
+import { isRedirect, redirect } from "@tanstack/react-router"
 import { z } from "zod"
 
 import { DeckGenerationUserError, toUserFacingError } from "./generation-errors"
+import { getGeneratedDeck } from "./history-store"
 import {
   InvalidDeckHtmlForPdfError,
   exportHtmlDeckToPdf,
@@ -27,6 +29,10 @@ const ExportDeckPdfSchema = z.object({
   deckHtml: z.string().min(1, "Deck HTML is required."),
 })
 
+const DeckIdSchema = z.object({
+  deckId: z.string().min(1, "Deck ID is required."),
+})
+
 export const generateDeck = createServerFn({ method: "POST" })
   .validator(GenerateDeckFormSchema)
   .handler(async ({ data }) => {
@@ -42,8 +48,17 @@ export const generateDeck = createServerFn({ method: "POST" })
         hasStyleUrl: Boolean(data.styleUrl.trim()),
       })
 
-      return await generateSlides(data)
+      const result = await generateSlides(data)
+
+      throw redirect({
+        to: "/pdf/$deckId",
+        params: { deckId: result.artifactId },
+      })
     } catch (error) {
+      if (isRedirect(error)) {
+        throw error
+      }
+
       const userFacingError = toUserFacingError(error)
 
       console.error("[deck-generation] request failed", {
@@ -57,6 +72,20 @@ export const generateDeck = createServerFn({ method: "POST" })
         userFacingError.cause
       )
     }
+  })
+
+export const getGeneratedDeckById = createServerFn({ method: "GET" })
+  .validator(DeckIdSchema)
+  .handler(({ data }) => {
+    const deck = getGeneratedDeck(data.deckId)
+
+    if (!deck) {
+      throw new Error(
+        "Generated deck history was not found. In-memory prototype history is cleared when the server restarts."
+      )
+    }
+
+    return deck
   })
 
 export const exportDeckPdf = createServerFn({ method: "POST" })

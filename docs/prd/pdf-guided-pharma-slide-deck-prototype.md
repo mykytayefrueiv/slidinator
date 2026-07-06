@@ -20,13 +20,14 @@ Build a server-side deck generation flow with a simple client UI:
 - The server extracts visual style guidance from the design PDF.
 - A deck composer combines facts, style guidance, user prompt, and optional URL into a complete raw HTML artifact.
 - The HTML artifact is validated and, if needed, repaired once by the model using structured validation errors.
-- The app previews the generated HTML deck.
+- The generation flow redirects to `/pdf/{deckId}` after a deck is created.
+- The `/pdf/{deckId}` page previews the generated HTML deck.
 - The user can download a PDF rendered from the generated HTML through Playwright.
 - The preview renders the generated HTML into a Shadow DOM host.
 
 The generated HTML is the editable source of truth. PDF is only an export format. Future editing should modify the HTML artifact and then re-export a new PDF, rather than attempting to edit the PDF directly.
 
-The prototype will continue using TanStack Start as the full-stack React framework. TanStack Query will manage client-side server state and mutations. TanStack AI will wrap model calls and use OpenAI as the first provider for the fact extraction, style extraction, composition, and repair stages. Playwright will render the validated HTML artifact to PDF.
+The prototype will continue using TanStack Start as the full-stack React framework. TanStack Query will manage client-side server state and mutations. AI SDK will wrap model calls and use OpenAI as the first provider for the fact extraction, style extraction, composition, and repair stages. Playwright will render the validated HTML artifact to PDF.
 
 ## User Stories
 
@@ -87,8 +88,8 @@ The prototype will continue using TanStack Start as the full-stack React framewo
   - generated artifact and generation status as query/mutation state rather than hand-rolled async state where it meaningfully simplifies the UI;
   - avoid long-lived persistence in v1 because generated decks are not saved.
 
-- Use TanStack AI for the AI orchestration layer:
-  - provider adapters should sit behind TanStack AI rather than direct provider SDK calls in feature code;
+- Use AI SDK for the AI orchestration layer:
+  - provider calls should sit behind AI SDK rather than direct OpenAI SDK calls in feature code;
   - OpenAI is the first provider;
   - model calls should be represented as composable internal activities for fact extraction, style extraction, deck composition, and repair;
   - feature code should still avoid direct OpenAI SDK calls so another provider can be swapped later if needed.
@@ -112,7 +113,28 @@ The prototype will continue using TanStack Start as the full-stack React framewo
 
 - Keep the UI simple. Do not expose internal fact/style/composition stages as debug panels in the first version.
 
-- Treat the generated HTML document as the main deck artifact. Do not persist generated artifacts server-side in v1.
+- Treat the generated HTML document as the main deck artifact. The artifact is addressed by `deckId` and previewed at `/pdf/{deckId}`.
+
+- Keep deck AI history in a simple server-side in-memory object keyed by deck ID for the next prototype phase. The intended shape is:
+
+```ts
+type DeckHistoryStore = Record<string, DeckAiMessage[]>
+
+type DeckAiMessage = {
+  role: "user" | "assistant"
+  content: unknown
+}
+```
+
+- Generation creates a `deckId`, stores the prompt/context and assistant HTML response in this history store, and redirects the user to `/pdf/{deckId}` using TanStack Start redirect behavior.
+
+- The `/pdf/{deckId}` route is the deck workspace. It loads the generated HTML artifact by ID, renders it in the Shadow DOM preview, exposes PDF download, and will later host pencil rectangle editing.
+
+- Future `editDeck` flow is called from `/pdf/{deckId}`. It retrieves history by `deckId`, appends a user edit request containing selected slide ID, geometry, screenshot or crop image, and requested text changes, calls AI SDK, appends the regenerated HTML response, and returns the updated HTML artifact for that page to preview.
+
+- Because edit requests include image context, `editDeck` should use AI SDK message/content-part input rather than a plain text-only prompt. The history store can still remain a simple object keyed by ID.
+
+- Do not introduce durable database persistence yet; in-memory history is acceptable for the prototype and can be promoted later to persisted deck sessions/version history.
 
 - Download only PDF in v1. HTML download is out of scope for now.
 
@@ -172,6 +194,21 @@ normalizedHeight = rect.height / slideHeight
 
 - Future batch editing request shape should send the HTML artifact plus all selections, each with slide ID, normalized rectangle, prompt, and order.
 
+- Future edit requests should be shaped around deck history lookup:
+
+```ts
+type EditDeckRequest = {
+  deckId: string
+  currentHtml: string
+  selections: AreaSelection[]
+  slideImages: Array<{
+    slideId: string
+    mimeType: "image/png" | "image/jpeg"
+    data: string
+  }>
+}
+```
+
 ## Testing Decisions
 
 - Good tests should validate external behavior and stable contracts, not model internals or implementation details.
@@ -188,7 +225,7 @@ normalizedHeight = rect.height / slideHeight
 
 - Test TanStack Query integration at the UI boundary by asserting user-visible loading, success, and error states rather than internal hook calls.
 
-- Test TanStack AI integration through adapter seams or mocked generation activities, not live provider calls.
+- Test AI SDK integration through adapter seams or mocked generation activities, not live provider calls.
 
 - There is no prior test structure in the current project. Add focused Vitest tests for pure modules first, then add React Testing Library coverage for UI behavior where useful.
 
@@ -218,9 +255,11 @@ normalizedHeight = rect.height / slideHeight
 - Technology choices fixed during planning:
   - TanStack Start for the full-stack app.
   - TanStack Query for client server-state and mutations.
-  - TanStack AI for model orchestration and provider abstraction.
+  - AI SDK for model orchestration and provider abstraction.
   - OpenAI as the first AI provider.
   - Playwright for HTML-to-PDF rendering.
 - Use TanStack Start server routes for upload/generation/export endpoints.
 - Use Shadow DOM for preview rendering in v1, without rectangle drawing yet.
 - Decide the detailed sanitization implementation during the implementation task.
+- Edit functionality should use a simple `deckId -> history[]` store first. The `editDeck` function retrieves history, appends multimodal edit context, regenerates HTML through AI SDK, appends the assistant response, and returns the updated artifact.
+- Generated decks should be opened at `/pdf/{deckId}`. The generation action should redirect there, and all preview/edit/export interactions should happen from that deck-specific route.

@@ -3,6 +3,7 @@ import { createOpenRouterDeckGenerationModel } from "./ai/openrouter-deck-genera
 import { extractReferenceSource } from "./pdf/reference-source"
 import { renderDesignReference } from "./pdf/design-reference"
 import { validateDeckHtml } from "./validation/html-deck-validation"
+import { createDeckId, storeGeneratedDeckHistory } from "./history-store"
 import type {
   DeckGenerationInput,
   DeckValidationError,
@@ -48,7 +49,7 @@ export async function generateSlides(
   const validation = validateDeckHtml(deckHtml)
 
   if (validation.valid) {
-    return deckResult({
+    const result = deckResult({
       input,
       referenceFileName: reference.fileName,
       designFileName: design.fileName,
@@ -56,6 +57,16 @@ export async function generateSlides(
       deckHtml,
       slideCount: validation.slideCount,
     })
+
+    storeGeneratedDeckHistory({
+      input,
+      reference,
+      design,
+      facts,
+      deck: result,
+    })
+
+    return result
   }
 
   console.log("[deck-generation] repairing deck HTML", {
@@ -84,7 +95,7 @@ export async function generateSlides(
     )
   }
 
-  return deckResult({
+  const result = deckResult({
     input,
     referenceFileName: reference.fileName,
     designFileName: design.fileName,
@@ -92,6 +103,16 @@ export async function generateSlides(
     deckHtml: repairedHtml,
     slideCount: repairedValidation.slideCount,
   })
+
+  storeGeneratedDeckHistory({
+    input,
+    reference,
+    design,
+    facts,
+    deck: result,
+  })
+
+  return result
 }
 
 function deckResult({
@@ -110,7 +131,7 @@ function deckResult({
   slideCount: number
 }): GenerateDeckResult {
   return {
-    artifactId: `deck-${crypto.randomUUID()}`,
+    artifactId: createDeckId(),
     deckHtml,
     slideCount,
     sourceSummary: {

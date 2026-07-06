@@ -49,7 +49,9 @@ vi.mock("@tanstack/react-start", async (importOriginal) => {
 
 const generateDeckActionMock =
   serverFunctionMocks.generateDeckAction as ReturnType<
-    typeof vi.fn<(input: { data: FormData }) => Promise<GenerateDeckResult>>
+    typeof vi.fn<
+      (input: { data: FormData }) => Promise<GenerateDeckResult | void>
+    >
   >
 const exportDeckPdfActionMock =
   serverFunctionMocks.exportDeckPdfAction as ReturnType<
@@ -168,9 +170,9 @@ describe("upload-to-preview skeleton", () => {
   })
 
   test("shows mutation loading state", async () => {
-    let resolveMutation: (result: GenerateDeckResult) => void = () => {}
+    let resolveMutation: () => void = () => {}
     generateDeckActionMock.mockReturnValue(
-      new Promise<GenerateDeckResult>((resolve) => {
+      new Promise<void>((resolve) => {
         resolveMutation = resolve
       })
     )
@@ -185,7 +187,7 @@ describe("upload-to-preview skeleton", () => {
 
     expect(generatingButton).toBeTruthy()
 
-    resolveMutation(mockDeckResult())
+    resolveMutation()
   })
 
   test("submits files and prompt inputs to the generation route", async () => {
@@ -231,102 +233,7 @@ describe("upload-to-preview skeleton", () => {
     expect(alert.textContent).toContain("Mock generation failed.")
   })
 
-  test("renders a successful deck into a Shadow DOM preview", async () => {
-    generateDeckActionMock.mockResolvedValue(mockDeckResult())
-    renderPage()
-    uploadRequiredFiles()
-
-    fireEvent.click(screen.getByRole("button", { name: /generate/i }))
-
-    expect(await screen.findByText("3 generated slides")).toBeTruthy()
-    expect(screen.queryByLabelText(/Reference PDF/)).toBeNull()
-    expect(screen.queryByLabelText(/Design PDF/)).toBeNull()
-    expect(screen.getByRole("button", { name: /^back$/i })).toBeTruthy()
-
-    const previewHost = screen.getByTestId("deck-preview-host")
-
-    await waitFor(() => {
-      expect(previewHost.shadowRoot).toBeTruthy()
-      expect(
-        previewHost.shadowRoot?.querySelectorAll(".slide-page").length
-      ).toBe(1)
-      expect(previewHost.shadowRoot?.textContent).toContain("One")
-    })
-
-    expect(screen.getByTestId("deck-thumbnail-1").shadowRoot).toBeTruthy()
-    expect(screen.getByTestId("deck-thumbnail-2").shadowRoot).toBeTruthy()
-    expect(screen.getByTestId("deck-thumbnail-3").shadowRoot).toBeTruthy()
-
-    fireEvent.click(screen.getByRole("button", { name: "Next slide" }))
-
-    await waitFor(() => {
-      expect(previewHost.shadowRoot?.textContent).toContain("Two")
-    })
-
-    fireEvent.click(screen.getByRole("button", { name: "Show slide 3" }))
-
-    await waitFor(() => {
-      expect(previewHost.shadowRoot?.textContent).toContain("Three")
-    })
-  })
-
-  test("downloads the generated deck PDF from the preview", async () => {
-    const result = mockDeckResult()
-    generateDeckActionMock.mockResolvedValue(result)
-    exportDeckPdfActionMock.mockResolvedValue({
-      pdfBytes: [0x25, 0x50, 0x44, 0x46],
-    })
-    renderPage()
-    uploadRequiredFiles()
-
-    fireEvent.click(screen.getByRole("button", { name: /generate/i }))
-
-    const downloadButton = await screen.findByRole("button", {
-      name: /download pdf/i,
-    })
-
-    fireEvent.click(downloadButton)
-
-    await waitFor(() => {
-      expect(exportDeckPdfActionMock.mock.calls[0]?.[0]).toEqual({
-        data: { deckHtml: result.deckHtml },
-      })
-    })
-    expect(createObjectUrlMock).toHaveBeenCalled()
-    expect(anchorClickMock).toHaveBeenCalled()
-    expect(revokeObjectUrlMock).toHaveBeenCalledWith("blob:slidinator-deck")
-  })
-
-  test("shows export loading and error states", async () => {
-    generateDeckActionMock.mockResolvedValue(mockDeckResult())
-    let rejectExport: (error: Error) => void = () => {}
-    exportDeckPdfActionMock.mockReturnValue(
-      new Promise((_, reject) => {
-        rejectExport = reject
-      })
-    )
-    renderPage()
-    uploadRequiredFiles()
-
-    fireEvent.click(screen.getByRole("button", { name: /generate/i }))
-
-    const downloadButton = await screen.findByRole("button", {
-      name: /download pdf/i,
-    })
-    fireEvent.click(downloadButton)
-
-    expect(
-      await screen.findByRole("button", { name: /exporting/i })
-    ).toBeTruthy()
-
-    rejectExport(new Error("Mock export failed."))
-
-    const alert = await screen.findByRole("alert")
-
-    expect(alert.textContent).toContain("Mock export failed.")
-  })
-
-  test("back returns to a fresh start card", async () => {
+  test("stays on the upload form while the server function handles redirect", async () => {
     generateDeckActionMock.mockResolvedValue(mockDeckResult())
     renderPage()
     uploadRequiredFiles()
@@ -339,19 +246,17 @@ describe("upload-to-preview skeleton", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /^generate$/i }))
 
-    expect(await screen.findByText("3 generated slides")).toBeTruthy()
-
-    fireEvent.click(screen.getByRole("button", { name: /^back$/i }))
-
-    expect(screen.getByRole("button", { name: /^generate$/i })).toBeTruthy()
-    expect(screen.queryByText("3 generated slides")).toBeNull()
+    await waitFor(() => {
+      expect(generateDeckActionMock).toHaveBeenCalled()
+    })
     expect(screen.queryByRole("button", { name: /download pdf/i })).toBeNull()
-    expect(screen.getAllByText("Choose a PDF").length).toBe(2)
-
-    expect(screen.getByLabelText("Extra prompt")).toHaveProperty("value", "")
+    expect(screen.getByLabelText("Extra prompt")).toHaveProperty(
+      "value",
+      "Remember this prompt."
+    )
     expect(screen.getByLabelText("Optional style URL")).toHaveProperty(
       "value",
-      ""
+      "https://example.com/style"
     )
   })
 })

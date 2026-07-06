@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { useMutation } from "@tanstack/react-query"
 import { useServerFn } from "@tanstack/react-start"
 import { Loader2, Sparkles } from "lucide-react"
 import type { FormEvent } from "react"
@@ -17,47 +17,19 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { exportDeckPdf, generateDeck } from "@/server/deck-generation/api"
-import type { GenerateDeckResult } from "@/server/deck-generation/types"
-
-import { GeneratedDeckView } from "./components/generated-deck-view"
+import { generateDeck } from "@/server/deck-generation/api"
 
 export function UploadDeckPage() {
-  const queryClient = useQueryClient()
   const [referencePdf, setReferencePdf] = useState<File | null>(null)
   const [designPdf, setDesignPdf] = useState<File | null>(null)
   const [extraPrompt, setExtraPrompt] = useState("")
   const [styleUrl, setStyleUrl] = useState("")
   const [validationError, setValidationError] = useState("")
-  const [generatedDeck, setGeneratedDeck] = useState<GenerateDeckResult | null>(
-    null
-  )
   const generateDeckServerFn = useServerFn(generateDeck)
-  const exportDeckPdfServerFn = useServerFn(exportDeckPdf)
 
   const generateMutation = useMutation({
     mutationFn: (formData: FormData) =>
       generateDeckServerFn({ data: formData }),
-    onSuccess: (result) => {
-      setGeneratedDeck(result)
-      exportPdfMutation.reset()
-    },
-  })
-  const exportPdfMutation = useMutation({
-    mutationFn: (deckHtml: string) =>
-      exportDeckPdfServerFn({ data: { deckHtml } }),
-    onSuccess: ({ pdfBytes }) => {
-      const pdfBlob = new Blob([new Uint8Array(pdfBytes)], {
-        type: "application/pdf",
-      })
-      const objectUrl = URL.createObjectURL(pdfBlob)
-      const link = document.createElement("a")
-
-      link.href = objectUrl
-      link.download = "slidinator-deck.pdf"
-      link.click()
-      URL.revokeObjectURL(objectUrl)
-    },
   })
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -78,39 +50,11 @@ export function UploadDeckPage() {
     generateMutation.mutate(formData)
   }
 
-  function handleBackToStart() {
-    setGeneratedDeck(null)
-    setReferencePdf(null)
-    setDesignPdf(null)
-    setExtraPrompt("")
-    setStyleUrl("")
-    setValidationError("")
-    generateMutation.reset()
-    exportPdfMutation.reset()
-    queryClient.clear()
-  }
-
-  const result = generatedDeck
   const errorMessage =
     validationError ||
     (generateMutation.error instanceof Error
       ? generateMutation.error.message
-      : "") ||
-    (exportPdfMutation.error instanceof Error
-      ? exportPdfMutation.error.message
       : "")
-
-  if (result) {
-    return (
-      <GeneratedDeckView
-        deck={result}
-        errorMessage={errorMessage}
-        isExporting={exportPdfMutation.isPending}
-        onBackToStart={handleBackToStart}
-        onDownloadPdf={() => exportPdfMutation.mutate(result.deckHtml)}
-      />
-    )
-  }
 
   return (
     <main className="grid min-h-svh place-items-center bg-[#f6f8f7] px-5 py-8 text-slate-950">

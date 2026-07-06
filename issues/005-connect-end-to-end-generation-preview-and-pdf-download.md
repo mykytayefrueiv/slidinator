@@ -23,5 +23,5 @@ Replace the mocked generation path with the real generation route and connect th
 
 ## Blocked by
 
-- `issues/003-generate-deck-html-from-pdfs-with-tanstack-ai-openai.md`
+- `issues/003-generate-deck-html-from-pdfs-with-ai-sdk-openai.md`
 - `issues/004-export-previewed-html-artifact-to-pdf.md`
