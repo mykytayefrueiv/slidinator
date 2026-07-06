@@ -1,21 +1,53 @@
-# TanStack Start + shadcn/ui
+# Slidinator
 
-This is a template for a new TanStack Start project with React, TypeScript, and shadcn/ui.
+Slidinator is a TanStack Start prototype that turns two PDFs into a short pharma training deck:
 
-## Adding components
+- a reference PDF for factual source material;
+- a design PDF for visual style;
+- an optional prompt/style URL for steering;
+- an HTML slide preview;
+- a PDF export of the generated deck.
 
-To add components to your app, run the following command:
+The generated HTML is the source artifact. PDF is only the export format.
+
+## Project Docs
+
+- PRD: `docs/prd/pdf-guided-pharma-slide-deck-prototype.md`
+- Implementation issues: `issues/`
+
+## Code Structure Vision
+
+- Keep routes thin; put product UI in `src/features/<feature-name>/`.
+- Keep server workflows in `src/server/<domain>/`, exposed to the client through TanStack Start server functions.
+
+## Setup
+
+Install dependencies with Bun:
 
 ```bash
-npx shadcn@latest add button
+bun install
 ```
 
-This will place the ui components in the `components` directory.
+Create your local environment file:
 
-## Using components
+```bash
+cp .env.example .env
+```
 
-To use the components in your app, import them as follows:
+Fill `.env` with the required values from `.env.example`, especially `OPENROUTER_API_KEY`.
 
-```tsx
-import { Button } from "@/components/ui/button";
+Run the app:
+
+```bash
+bun run dev
+```
+
+Open the local URL printed by Vite, usually `http://localhost:3000`.
+
+## Useful Commands
+
+```bash
+bun run test
+bun run typecheck
+bun run lint
 ```

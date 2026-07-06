@@ -1,6 +1,7 @@
 {
   "name": "slidinator",
   "private": true,
+  "packageManager": "bun@1.3.11",
   "type": "module",
   "scripts": {
     "dev": "vite dev --port 3000",
