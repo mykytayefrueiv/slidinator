@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest"
 
-import { validateDeckHtml } from "../html-deck-validation"
+import { validateDeckHtml } from "../../validation/html-deck-validation"
 
 function validDeckHtml(slides = 3) {
   const slideHtml = Array.from(

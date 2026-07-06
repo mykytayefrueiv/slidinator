@@ -135,7 +135,7 @@ describe("upload-to-preview skeleton", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /generate/i }))
 
-    expect(await screen.findByText("3 mock slides")).toBeTruthy()
+    expect(await screen.findByText("3 generated slides")).toBeTruthy()
     expect(screen.queryByLabelText(/Reference PDF/)).toBeNull()
     expect(screen.queryByLabelText(/Design PDF/)).toBeNull()
 

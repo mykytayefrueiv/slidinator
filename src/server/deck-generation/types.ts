@@ -7,6 +7,7 @@ export type GenerateDeckResult = {
     designFileName: string
     extraPrompt: string
     styleUrl: string
+    provider?: string
   }
 }
 
@@ -50,3 +51,43 @@ export type RepairDeckHtmlInput = {
 }
 
 export type RepairDeckHtml = (input: RepairDeckHtmlInput) => Promise<string>
+
+export type ReferenceSourceMaterial = {
+  fileName: string
+  pageCount: number
+  text: string
+}
+
+export type FactBrief = {
+  productName: string
+  audience: string
+  keyFacts: Array<string>
+  safetyPoints: Array<string>
+  trainingTakeaways: Array<string>
+}
+
+export type DesignPageImage = {
+  data: Buffer
+  mediaType: "image/png"
+  width: number
+  height: number
+}
+
+export type DesignPageSample = {
+  pageNumber: number
+  width: number
+  height: number
+  renderedImage?: DesignPageImage
+  textBlocks: Array<{
+    text: string
+    x: number
+    y: number
+    fontName?: string
+  }>
+}
+
+export type DesignSourceMaterial = {
+  fileName: string
+  pageCount: number
+  samples: Array<DesignPageSample>
+}

@@ -34,6 +34,7 @@ export function UploadDeckPage({
   const [styleUrl, setStyleUrl] = useState("")
   const [validationError, setValidationError] = useState("")
 
+  // TODO: Fix as useServerFn()
   const generateMutation = useMutation({
     mutationFn: generateDeckAction,
   })
@@ -75,7 +76,7 @@ export function UploadDeckPage({
               </h1>
             </div>
             <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
-              {result.slideCount} mock slides
+              {result.slideCount} generated slides
             </span>
           </div>
 
@@ -96,12 +97,11 @@ export function UploadDeckPage({
               Slidinator prototype
             </p>
             <CardTitle className="mt-3 text-3xl leading-tight font-semibold text-slate-950">
-              Upload PDFs, generate a mock pharma deck
+              Upload PDFs, generate a pharma deck
             </CardTitle>
             <CardDescription className="mt-3 text-sm leading-6 text-slate-600">
-              This first slice keeps generation mocked while preserving the
-              server endpoint and deck HTML contract that later AI work can
-              replace.
+              Extract factual content from a reference PDF, sample visual style
+              from a design PDF, and generate validated HTML slides.
             </CardDescription>
           </div>
         </CardHeader>

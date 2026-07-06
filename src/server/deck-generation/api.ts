@@ -1,6 +1,10 @@
 import { createServerFn } from "@tanstack/react-start"
 import { z } from "zod"
 
+import {
+  DeckGenerationUserError,
+  toUserFacingError,
+} from "./generation-errors"
 import type { DeckGenerationInput } from "./types"
 
 const PdfFileSchema = z.instanceof(File, {
@@ -21,11 +25,31 @@ const GenerateDeckFormSchema = z
 export const generateDeck = createServerFn({ method: "POST" })
   .validator(GenerateDeckFormSchema)
   .handler(async ({ data }) => {
-    const { generateDeckArtifact } = await import("./generation-flow")
-    const { createMockDeck } = await import("./mock-deck.server")
+    try {
+      const { generateSlides } = await import("./generate-slides")
 
-    return generateDeckArtifact({
-      input: data,
-      generate: createMockDeck,
-    })
+      console.log("[deck-generation] request accepted", {
+        referenceFileName: data.referenceFile.name,
+        referenceFileSize: data.referenceFile.size,
+        designFileName: data.designFile.name,
+        designFileSize: data.designFile.size,
+        hasExtraPrompt: Boolean(data.extraPrompt.trim()),
+        hasStyleUrl: Boolean(data.styleUrl.trim()),
+      })
+
+      return await generateSlides(data)
+    } catch (error) {
+      const userFacingError = toUserFacingError(error)
+
+      console.error("[deck-generation] request failed", {
+        code: userFacingError.code,
+        message: userFacingError.message,
+      })
+
+      throw new DeckGenerationUserError(
+        userFacingError.code,
+        userFacingError.message,
+        userFacingError.cause
+      )
+    }
   })

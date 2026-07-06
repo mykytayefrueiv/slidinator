@@ -1,7 +1,7 @@
 import type { DefaultTreeAdapterMap } from "parse5"
 import { parse } from "parse5"
 
-import type { DeckValidationError, DeckValidationResult } from "./types"
+import type { DeckValidationError, DeckValidationResult } from "../types"
 
 type Parse5Node = DefaultTreeAdapterMap["node"]
 type Parse5Element = DefaultTreeAdapterMap["element"]

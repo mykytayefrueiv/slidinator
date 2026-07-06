@@ -1,6 +1,6 @@
 # Add HTML Deck Validation and Repair Contract
 
-Labels: ready-for-agent
+Labels: done
 
 ## Parent
 
@@ -8,7 +8,7 @@ Parent PRD: `docs/prd/pdf-guided-pharma-slide-deck-prototype.md`
 
 ## What to build
 
-Add the validation layer for generated HTML deck artifacts and the repair seam used when AI output is invalid. The validator should focus on the deck contract needed by preview, PDF export, and future editing: parseable HTML, 2-3 `.slide-page` sections, deterministic print/page CSS, page breaks, and no scripts or unsafe inline event handlers. The repair path should be represented as a single retry seam that can be mocked in tests and later backed by TanStack AI.
+Add the validation layer for generated HTML deck artifacts and the repair seam used when AI output is invalid. The validator should focus on the deck contract needed by preview, PDF export, and future editing: parseable HTML, 2-3 `.slide-page` sections, deterministic print/page CSS, page breaks, and no scripts or unsafe inline event handlers. The repair path should be represented as a single retry seam that can be mocked in tests and later backed by AI SDK.
 
 ## Acceptance criteria
 
