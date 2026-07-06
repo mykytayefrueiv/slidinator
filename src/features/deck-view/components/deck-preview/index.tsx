@@ -23,7 +23,10 @@ export function DeckPreview({
   isSubmittingEdit = false,
   onSubmitEdit,
 }: DeckPreviewProps) {
-  const { headHtml, slides } = useMemo(() => parseDeckHtml(html), [html])
+  const { bodyAttributes, headHtml, slides } = useMemo(
+    () => parseDeckHtml(html),
+    [html]
+  )
   const [activeSlideIndex, setActiveSlideIndex] = useState(0)
   const [mainScale, setMainScale] = useState(1)
   const [isEditMode, setIsEditMode] = useState(false)
@@ -94,6 +97,7 @@ export function DeckPreview({
         {slides.map((slideHtml, index) => (
           <SlideThumbnail
             key={index}
+            bodyAttributes={bodyAttributes}
             headHtml={headHtml}
             slideHtml={slideHtml}
             slideNumber={index + 1}
@@ -131,6 +135,7 @@ export function DeckPreview({
             }}
           >
             <ShadowSlide
+              bodyAttributes={bodyAttributes}
               headHtml={headHtml}
               slideHtml={activeSlide}
               scale={mainScale}

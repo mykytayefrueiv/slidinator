@@ -40,6 +40,52 @@ function findElementsByClassName(
   })
 }
 
+function escapeAttribute(value: string) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+}
+
+function serializeAttributes(
+  element: ElementNode | null,
+  extraClassName?: string
+) {
+  if (!element || element.attrs.length === 0) {
+    return extraClassName ? `class="${escapeAttribute(extraClassName)}"` : ""
+  }
+
+  const attributes = element.attrs.map((attribute) => {
+    if (attribute.name === "class" && extraClassName) {
+      return {
+        ...attribute,
+        value: [attribute.value, extraClassName].filter(Boolean).join(" "),
+      }
+    }
+
+    return attribute
+  })
+
+  if (
+    extraClassName &&
+    !attributes.some((attribute) => attribute.name === "class")
+  ) {
+    attributes.push({ name: "class", value: extraClassName })
+  }
+
+  return attributes
+    .map(
+      (attribute) =>
+        `${attribute.name}="${escapeAttribute(attribute.value)}"`
+    )
+    .join(" ")
+}
+
+function adaptDocumentCssForShadowDom(headHtml: string) {
+  return headHtml.replaceAll(":root", ":host")
+}
+
 export function parseDeckHtml(html: string) {
   const parsedHtml = parse(html)
   const htmlElement = findElementByTagName(parsedHtml, "html")
@@ -58,7 +104,13 @@ export function parseDeckHtml(html: string) {
       : [bodyElement ? serialize(bodyElement) : html]
 
   return {
-    headHtml: headElement ? serialize(headElement) : "",
+    bodyAttributes: serializeAttributes(
+      bodyElement ?? null,
+      "slide-preview-body"
+    ),
+    headHtml: headElement
+      ? adaptDocumentCssForShadowDom(serialize(headElement))
+      : "",
     slides,
   }
 }

@@ -21,4 +21,23 @@ describe("parseDeckHtml", () => {
       '<section class="slide-page">Two</section>',
     ])
   })
+
+  test("adapts document root styles and body attributes for shadow rendering", () => {
+    const deck = parseDeckHtml(`<!doctype html>
+<html>
+  <head>
+    <style>:root { --navy: #053d54; } .cover { background: var(--navy); }</style>
+  </head>
+  <body class="deck-theme" data-template="pharma">
+    <section class="slide-page cover">Cover</section>
+  </body>
+</html>`)
+
+    expect(deck.headHtml).toContain(":host { --navy: #053d54; }")
+    expect(deck.headHtml).not.toContain(":root")
+    expect(deck.bodyAttributes).toContain(
+      'class="deck-theme slide-preview-body"'
+    )
+    expect(deck.bodyAttributes).toContain('data-template="pharma"')
+  })
 })

@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react"
 import { SLIDE_HEIGHT, SLIDE_WIDTH } from "./constants"
 
 type ShadowSlideProps = {
+  bodyAttributes: string
   headHtml: string
   slideHtml: string
   scale: number
@@ -12,6 +13,7 @@ type ShadowSlideProps = {
 }
 
 export function ShadowSlide({
+  bodyAttributes,
   headHtml,
   slideHtml,
   scale,
@@ -45,15 +47,25 @@ export function ShadowSlide({
           transform-origin: top left;
         }
 
-        .slide-preview-frame > .slide-page {
+        .slide-preview-body {
+          display: block;
+          margin: 0;
+          width: ${SLIDE_WIDTH}px;
+          height: ${SLIDE_HEIGHT}px;
+          overflow: hidden;
+        }
+
+        .slide-preview-frame > .slide-preview-body > .slide-page {
           margin: 0 !important;
         }
       </style>
       <div class="slide-preview-frame">
-        ${slideHtml}
+        <body ${bodyAttributes}>
+          ${slideHtml}
+        </body>
       </div>
     `
-  }, [headHtml, slideHtml])
+  }, [bodyAttributes, headHtml, slideHtml])
 
   return (
     <div

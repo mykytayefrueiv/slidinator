@@ -2,6 +2,7 @@ import { SLIDE_WIDTH, THUMBNAIL_WIDTH } from "./constants"
 import { ShadowSlide } from "./shadow-slide"
 
 type SlideThumbnailProps = {
+  bodyAttributes: string
   headHtml: string
   slideHtml: string
   slideNumber: number
@@ -10,6 +11,7 @@ type SlideThumbnailProps = {
 }
 
 export function SlideThumbnail({
+  bodyAttributes,
   headHtml,
   slideHtml,
   slideNumber,
@@ -34,6 +36,7 @@ export function SlideThumbnail({
         {slideNumber}
       </span>
       <ShadowSlide
+        bodyAttributes={bodyAttributes}
         headHtml={headHtml}
         slideHtml={slideHtml}
         scale={THUMBNAIL_WIDTH / SLIDE_WIDTH}
