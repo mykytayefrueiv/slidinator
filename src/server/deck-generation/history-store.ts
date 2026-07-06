@@ -5,6 +5,7 @@ import type {
   GenerateDeckResult,
   ReferenceSourceMaterial,
 } from "./types"
+import { EXAMPLE_DECK_ID, exampleDeckHistory } from "./example-deck"
 
 export type DeckGenerationHistoryContext = {
   upload: {
@@ -36,7 +37,9 @@ export type DeckHistoryStore = Partial<Record<string, Array<DeckAiMessage>>>
 
 // Prototype-only in-memory store. It is cleared on server restart and is not
 // suitable for durable history, multi-instance deployments, or production use.
-const deckHistoryStore: DeckHistoryStore = {}
+const deckHistoryStore: DeckHistoryStore = {
+  [EXAMPLE_DECK_ID]: exampleDeckHistory,
+}
 
 export function createDeckId() {
   return `deck-${crypto.randomUUID()}`
@@ -111,4 +114,6 @@ export function clearDeckHistoryForTests() {
   for (const deckId of Object.keys(deckHistoryStore)) {
     delete deckHistoryStore[deckId]
   }
+
+  deckHistoryStore[EXAMPLE_DECK_ID] = exampleDeckHistory
 }

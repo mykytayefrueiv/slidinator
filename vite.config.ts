@@ -6,6 +6,9 @@ import tailwindcss from "@tailwindcss/vite"
 
 const config = defineConfig({
   resolve: { tsconfigPaths: true },
+  optimizeDeps: {
+    exclude: ["@napi-rs/canvas", "fsevents"],
+  },
   plugins: [devtools(), tailwindcss(), tanstackStart(), viteReact()],
   test: {
     environment: "jsdom",

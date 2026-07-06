@@ -5,6 +5,21 @@ import { TanStackDevtools } from "@tanstack/react-devtools"
 import appCss from "../styles.css?url"
 import { AppQueryClientProvider } from "@/providers/query-client"
 
+const devConsoleFilterScript = `
+(() => {
+  const ignoredWarning = 'ObjectMultiplex - orphaned data for stream "metamask-multichain-provider"';
+  const originalWarn = console.warn.bind(console);
+
+  console.warn = (...args) => {
+    if (args.some((arg) => String(arg).includes(ignoredWarning))) {
+      return;
+    }
+
+    originalWarn(...args);
+  };
+})();
+`
+
 export const Route = createRootRoute({
   head: () => ({
     meta: [
@@ -100,6 +115,11 @@ function RootDocument({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <head>
+        {import.meta.env.DEV ? (
+          <script
+            dangerouslySetInnerHTML={{ __html: devConsoleFilterScript }}
+          />
+        ) : null}
         <HeadContent />
       </head>
       <body>

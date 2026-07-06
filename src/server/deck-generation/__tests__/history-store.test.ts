@@ -1,6 +1,10 @@
 import { beforeEach, describe, expect, test } from "vitest"
 
 import {
+  EXAMPLE_DECK_ID,
+  exampleGeneratedDeck,
+} from "../example-deck"
+import {
   clearDeckHistoryForTests,
   getDeckHistory,
   getGeneratedDeck,
@@ -124,5 +128,15 @@ describe("deck generation history store", () => {
 
     expect(getGeneratedDeck("deck-first")).toEqual(firstDeck)
     expect(getGeneratedDeck("deck-second")).toEqual(secondDeck)
+  })
+
+  test("keeps the seeded example deck available after clearing history", () => {
+    expect(getGeneratedDeck(EXAMPLE_DECK_ID)).toEqual(exampleGeneratedDeck)
+    expect(getDeckHistory(EXAMPLE_DECK_ID)).toEqual([
+      {
+        role: "assistant",
+        content: exampleGeneratedDeck,
+      },
+    ])
   })
 })

@@ -1,10 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 
 import { MAIN_PADDING, SLIDE_HEIGHT, SLIDE_WIDTH } from "./constants"
-import { parseDeckHtml } from "./helpers"
+import {
+  SelectionOverlay,
+  SelectionPromptPanel,
+  type SlideSelection,
+} from "./selection"
 import { ShadowSlide } from "./shadow-slide"
 import { SlideNavigation } from "./slide-navigation"
 import { SlideThumbnail } from "./slide-thumbnail"
+import { parseDeckHtml } from "./utils"
 
 type DeckPreviewProps = {
   html: string
@@ -14,7 +19,14 @@ export function DeckPreview({ html }: DeckPreviewProps) {
   const { headHtml, slides } = useMemo(() => parseDeckHtml(html), [html])
   const [activeSlideIndex, setActiveSlideIndex] = useState(0)
   const [mainScale, setMainScale] = useState(1)
+  const [isEditMode, setIsEditMode] = useState(false)
+  const [selections, setSelections] = useState<Array<SlideSelection>>([])
+  const [activeSelectionId, setActiveSelectionId] = useState<string | null>(
+    null
+  )
   const mainStageRef = useRef<HTMLDivElement>(null)
+
+  console.log(selections)
 
   useEffect(() => {
     const stage = mainStageRef.current
@@ -56,6 +68,13 @@ export function DeckPreview({ html }: DeckPreviewProps) {
   }, [])
 
   const activeSlide = slides[activeSlideIndex] ?? ""
+  const activeSlideId = `slide-${activeSlideIndex + 1}`
+  const activeSlideSelections = selections.filter(
+    (selection) => selection.slideId === activeSlideId
+  )
+  const createSelectionId = () =>
+    "selection-" +
+    (crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(16)}`)
 
   return (
     <div className="grid h-full min-h-[440px] grid-cols-[116px_1fr] overflow-hidden rounded-lg border border-slate-200 bg-slate-100 shadow-inner">
@@ -76,6 +95,7 @@ export function DeckPreview({ html }: DeckPreviewProps) {
         <SlideNavigation
           activeSlideIndex={activeSlideIndex}
           slideCount={slides.length}
+          isEditMode={isEditMode}
           onPrevious={() =>
             setActiveSlideIndex((index) => Math.max(0, index - 1))
           }
@@ -84,20 +104,81 @@ export function DeckPreview({ html }: DeckPreviewProps) {
               Math.min(slides.length - 1, index + 1)
             )
           }
+          onToggleEditMode={() => setIsEditMode((enabled) => !enabled)}
         />
 
         <div
           ref={mainStageRef}
           className="grid min-h-0 flex-1 place-items-start justify-items-center overflow-auto p-6"
         >
-          <ShadowSlide
-            headHtml={headHtml}
-            slideHtml={activeSlide}
-            scale={mainScale}
-            variant="main"
-            testId="deck-preview-host"
-          />
+          <div
+            className="relative"
+            style={{
+              width: SLIDE_WIDTH * mainScale,
+              height: SLIDE_HEIGHT * mainScale,
+            }}
+          >
+            <ShadowSlide
+              headHtml={headHtml}
+              slideHtml={activeSlide}
+              scale={mainScale}
+              variant="main"
+              testId="deck-preview-host"
+            />
+            <SelectionOverlay
+              isEditMode={isEditMode}
+              slideId={activeSlideId}
+              selections={activeSlideSelections}
+              activeSelectionId={activeSelectionId}
+              onSelect={setActiveSelectionId}
+              onCreate={({ slideId, renderedRect, normalizedRect }) => {
+                const nextSelectionId = createSelectionId()
+
+                setSelections((currentSelections) => {
+                  const nextSelection = {
+                    id: nextSelectionId,
+                    slideId,
+                    order: currentSelections.length + 1,
+                    renderedRect,
+                    normalizedRect,
+                    prompt: "",
+                  }
+
+                  return [...currentSelections, nextSelection]
+                })
+                setActiveSelectionId(nextSelectionId)
+              }}
+            />
+          </div>
         </div>
+
+        <SelectionPromptPanel
+          selections={selections}
+          activeSelectionId={activeSelectionId}
+          onSelect={setActiveSelectionId}
+          onPromptChange={(selectionId, prompt) => {
+            setSelections((currentSelections) =>
+              currentSelections.map((selection) =>
+                selection.id === selectionId
+                  ? { ...selection, prompt }
+                  : selection
+              )
+            )
+          }}
+          onRemove={(selectionId) => {
+            setSelections((currentSelections) =>
+              currentSelections
+                .filter((selection) => selection.id !== selectionId)
+                .map((selection, index) => ({
+                  ...selection,
+                  order: index + 1,
+                }))
+            )
+            setActiveSelectionId((currentSelectionId) =>
+              currentSelectionId === selectionId ? null : currentSelectionId
+            )
+          }}
+        />
       </div>
     </div>
   )

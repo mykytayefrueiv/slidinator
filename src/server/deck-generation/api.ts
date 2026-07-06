@@ -4,10 +4,6 @@ import { z } from "zod"
 
 import { DeckGenerationUserError, toUserFacingError } from "./generation-errors"
 import { getGeneratedDeck } from "./history-store"
-import {
-  InvalidDeckHtmlForPdfError,
-  exportHtmlDeckToPdf,
-} from "./pdf/export-html-to-pdf"
 import type { DeckGenerationInput } from "./types"
 
 const PdfFileSchema = z.instanceof(File, {
@@ -95,6 +91,11 @@ export const exportDeckPdf = createServerFn({ method: "POST" })
 export async function exportDeckPdfBytes({
   deckHtml,
 }: z.infer<typeof ExportDeckPdfSchema>) {
+  const pdfExporterPath = "./pdf/export-html-to-pdf"
+  const { InvalidDeckHtmlForPdfError, exportHtmlDeckToPdf } = (await import(
+    /* @vite-ignore */ pdfExporterPath
+  )) as typeof import("./pdf/export-html-to-pdf")
+
   try {
     const pdfBytes = await exportHtmlDeckToPdf({ deckHtml })
 
