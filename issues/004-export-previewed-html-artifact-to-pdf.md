@@ -1,6 +1,6 @@
 # Export the Previewed HTML Artifact to PDF
 
-Labels: ready-for-agent
+Labels: done
 
 ## Parent
 

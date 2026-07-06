@@ -91,10 +91,22 @@ function uploadRequiredFiles() {
   })
 }
 
-function mockDeckResult(): GenerateDeckResult {
+function mockDeckResult({
+  artifactId = "mock-test",
+  slideCount = 3,
+  firstSlideText = "One",
+  secondSlideText = "Two",
+  thirdSlideText = "Three",
+}: Partial<{
+  artifactId: string
+  slideCount: number
+  firstSlideText: string
+  secondSlideText: string
+  thirdSlideText: string
+}> = {}): GenerateDeckResult {
   return {
-    artifactId: "mock-test",
-    slideCount: 3,
+    artifactId,
+    slideCount,
     sourceSummary: {
       referenceFileName: "reference.pdf",
       designFileName: "design.pdf",
@@ -110,9 +122,9 @@ function mockDeckResult(): GenerateDeckResult {
     </style>
   </head>
   <body>
-    <section class="slide-page">One</section>
-    <section class="slide-page">Two</section>
-    <section class="slide-page">Three</section>
+    <section class="slide-page">${firstSlideText}</section>
+    <section class="slide-page">${secondSlideText}</section>
+    <section class="slide-page">${thirdSlideText}</section>
   </body>
 </html>`,
   }
@@ -176,6 +188,35 @@ describe("upload-to-preview skeleton", () => {
     resolveMutation(mockDeckResult())
   })
 
+  test("submits files and prompt inputs to the generation route", async () => {
+    generateDeckActionMock.mockResolvedValue(mockDeckResult())
+    renderPage()
+    uploadRequiredFiles()
+    fireEvent.change(screen.getByLabelText("Extra prompt"), {
+      target: { value: "Focus on renal dosing." },
+    })
+    fireEvent.change(screen.getByLabelText("Optional style URL"), {
+      target: { value: "https://example.com/style" },
+    })
+
+    fireEvent.click(screen.getByRole("button", { name: /generate/i }))
+
+    await waitFor(() => {
+      expect(generateDeckActionMock).toHaveBeenCalled()
+    })
+
+    const submittedFormData = generateDeckActionMock.mock.calls[0]?.[0].data
+
+    expect(submittedFormData.get("referencePdf")).toMatchObject({
+      name: "reference.pdf",
+    })
+    expect(submittedFormData.get("designPdf")).toMatchObject({
+      name: "design.pdf",
+    })
+    expect(submittedFormData.get("extraPrompt")).toBe("Focus on renal dosing.")
+    expect(submittedFormData.get("styleUrl")).toBe("https://example.com/style")
+  })
+
   test("shows mutation error state", async () => {
     generateDeckActionMock.mockRejectedValue(
       new Error("Mock generation failed.")
@@ -198,8 +239,8 @@ describe("upload-to-preview skeleton", () => {
     fireEvent.click(screen.getByRole("button", { name: /generate/i }))
 
     expect(await screen.findByText("3 generated slides")).toBeTruthy()
-    expect(screen.queryByLabelText(/Reference PDF/)).toBeNull()
-    expect(screen.queryByLabelText(/Design PDF/)).toBeNull()
+    expect(screen.getByLabelText(/Reference PDF/)).toBeTruthy()
+    expect(screen.getByLabelText(/Design PDF/)).toBeTruthy()
 
     const previewHost = screen.getByTestId("deck-preview-host")
 
@@ -253,5 +294,89 @@ describe("upload-to-preview skeleton", () => {
     expect(createObjectUrlMock).toHaveBeenCalled()
     expect(anchorClickMock).toHaveBeenCalled()
     expect(revokeObjectUrlMock).toHaveBeenCalledWith("blob:slidinator-deck")
+  })
+
+  test("shows export loading and error states", async () => {
+    generateDeckActionMock.mockResolvedValue(mockDeckResult())
+    let rejectExport: (error: Error) => void = () => {}
+    exportDeckPdfActionMock.mockReturnValue(
+      new Promise((_, reject) => {
+        rejectExport = reject
+      })
+    )
+    renderPage()
+    uploadRequiredFiles()
+
+    fireEvent.click(screen.getByRole("button", { name: /generate/i }))
+
+    const downloadButton = await screen.findByRole("button", {
+      name: /download pdf/i,
+    })
+    fireEvent.click(downloadButton)
+
+    expect(
+      await screen.findByRole("button", { name: /exporting/i })
+    ).toBeTruthy()
+
+    rejectExport(new Error("Mock export failed."))
+
+    const alert = await screen.findByRole("alert")
+
+    expect(alert.textContent).toContain("Mock export failed.")
+  })
+
+  test("regenerating replaces the preview and PDF download source", async () => {
+    let resolveRegeneration: (result: GenerateDeckResult) => void = () => {}
+    const firstResult = mockDeckResult({
+      artifactId: "first-artifact",
+      firstSlideText: "Original deck",
+    })
+    const secondResult = mockDeckResult({
+      artifactId: "second-artifact",
+      firstSlideText: "Regenerated deck",
+    })
+    generateDeckActionMock
+      .mockResolvedValueOnce(firstResult)
+      .mockReturnValueOnce(
+        new Promise<GenerateDeckResult>((resolve) => {
+          resolveRegeneration = resolve
+        })
+      )
+    exportDeckPdfActionMock.mockResolvedValue({
+      pdfBytes: [0x25, 0x50, 0x44, 0x46],
+    })
+    renderPage()
+    uploadRequiredFiles()
+
+    fireEvent.click(screen.getByRole("button", { name: /^generate$/i }))
+
+    const previewHost = await screen.findByTestId("deck-preview-host")
+
+    await waitFor(() => {
+      expect(previewHost.shadowRoot?.textContent).toContain("Original deck")
+    })
+
+    fireEvent.change(screen.getByLabelText("Extra prompt"), {
+      target: { value: "Make the second version." },
+    })
+    fireEvent.click(screen.getByRole("button", { name: /regenerate deck/i }))
+
+    expect(
+      await screen.findByRole("button", { name: /regenerating/i })
+    ).toBeTruthy()
+
+    resolveRegeneration(secondResult)
+
+    await waitFor(() => {
+      expect(previewHost.shadowRoot?.textContent).toContain("Regenerated deck")
+    })
+
+    fireEvent.click(screen.getByRole("button", { name: /download pdf/i }))
+
+    await waitFor(() => {
+      expect(exportDeckPdfActionMock).toHaveBeenCalledWith({
+        data: { deckHtml: secondResult.deckHtml },
+      })
+    })
   })
 })

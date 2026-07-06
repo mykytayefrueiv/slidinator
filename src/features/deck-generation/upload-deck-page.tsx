@@ -22,6 +22,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { exportDeckPdf, generateDeck } from "@/server/deck-generation/api"
+import type { GenerateDeckResult } from "@/server/deck-generation/types"
 import { DeckPreview } from "./components/deck-preview"
 
 export function UploadDeckPage() {
@@ -30,12 +31,19 @@ export function UploadDeckPage() {
   const [extraPrompt, setExtraPrompt] = useState("")
   const [styleUrl, setStyleUrl] = useState("")
   const [validationError, setValidationError] = useState("")
+  const [generatedDeck, setGeneratedDeck] = useState<GenerateDeckResult | null>(
+    null
+  )
   const generateDeckServerFn = useServerFn(generateDeck)
   const exportDeckPdfServerFn = useServerFn(exportDeckPdf)
 
   const generateMutation = useMutation({
     mutationFn: (formData: FormData) =>
       generateDeckServerFn({ data: formData }),
+    onSuccess: (result) => {
+      setGeneratedDeck(result)
+      exportPdfMutation.reset()
+    },
   })
   const exportPdfMutation = useMutation({
     mutationFn: (deckHtml: string) =>
@@ -72,6 +80,7 @@ export function UploadDeckPage() {
     generateMutation.mutate(formData)
   }
 
+  const result = generatedDeck
   const errorMessage =
     validationError ||
     (generateMutation.error instanceof Error
@@ -80,52 +89,76 @@ export function UploadDeckPage() {
     (exportPdfMutation.error instanceof Error
       ? exportPdfMutation.error.message
       : "")
-  const result = generateMutation.data
+  const submitLabel = result ? "Regenerate deck" : "Generate"
+  const pendingLabel = result ? "Regenerating" : "Generating"
 
   if (result) {
     return (
       <main className="grid min-h-svh place-items-center bg-[#f6f8f7] p-4 text-slate-950 lg:p-6">
-        <section className="flex h-[calc(100svh-32px)] w-full max-w-[1360px] min-w-0 flex-col rounded-lg border border-slate-200 bg-white p-4 shadow-sm lg:h-[calc(100svh-48px)]">
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-xs font-semibold tracking-[0.16em] text-slate-500 uppercase">
-                Shadow DOM preview
+        <section className="grid h-[calc(100svh-32px)] w-full max-w-[1480px] min-w-0 grid-cols-1 gap-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm lg:h-[calc(100svh-48px)] lg:grid-cols-[minmax(0,1fr)_360px]">
+          <div className="flex min-h-0 min-w-0 flex-col">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold tracking-[0.16em] text-slate-500 uppercase">
+                  Shadow DOM preview
+                </p>
+                <h1 className="mt-1 text-xl font-semibold text-slate-950">
+                  Generated HTML deck
+                </h1>
+              </div>
+              <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
+                {result.slideCount} generated slides
+              </span>
+              <Button
+                type="button"
+                className="bg-emerald-700 hover:bg-emerald-800"
+                disabled={exportPdfMutation.isPending}
+                onClick={() => exportPdfMutation.mutate(result.deckHtml)}
+              >
+                {exportPdfMutation.isPending ? (
+                  <Loader2 className="animate-spin" />
+                ) : (
+                  <Download />
+                )}
+                {exportPdfMutation.isPending ? "Exporting" : "Download PDF"}
+              </Button>
+            </div>
+
+            {errorMessage ? (
+              <ErrorAlert message={errorMessage} className="mb-4" />
+            ) : null}
+
+            <div className="min-h-0 flex-1">
+              <DeckPreview html={result.deckHtml} />
+            </div>
+          </div>
+
+          <aside className="min-h-0 overflow-y-auto rounded-lg border border-slate-200 bg-slate-50 p-4">
+            <div className="mb-4">
+              <p className="text-xs font-semibold tracking-[0.16em] text-emerald-700 uppercase">
+                Inputs
               </p>
-              <h1 className="mt-1 text-xl font-semibold text-slate-950">
-                Generated HTML deck
-              </h1>
+              <h2 className="mt-1 text-lg font-semibold text-slate-950">
+                Regenerate from PDFs
+              </h2>
             </div>
-            <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
-              {result.slideCount} generated slides
-            </span>
-            <Button
-              type="button"
-              className="bg-emerald-700 hover:bg-emerald-800"
-              disabled={exportPdfMutation.isPending}
-              onClick={() => exportPdfMutation.mutate(result.deckHtml)}
-            >
-              {exportPdfMutation.isPending ? (
-                <Loader2 className="animate-spin" />
-              ) : (
-                <Download />
-              )}
-              {exportPdfMutation.isPending ? "Exporting" : "Download PDF"}
-            </Button>
-          </div>
-
-          {errorMessage ? (
-            <div
-              role="alert"
-              className="mb-4 flex gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
-            >
-              <AlertCircle className="mt-0.5 size-4 shrink-0" />
-              <span>{errorMessage}</span>
-            </div>
-          ) : null}
-
-          <div className="min-h-0 flex-1">
-            <DeckPreview html={result.deckHtml} />
-          </div>
+            <GenerationForm
+              referencePdf={referencePdf}
+              designPdf={designPdf}
+              extraPrompt={extraPrompt}
+              styleUrl={styleUrl}
+              isPending={generateMutation.isPending}
+              submitLabel={submitLabel}
+              pendingLabel={pendingLabel}
+              errorMessage=""
+              compact
+              onReferencePdfChange={setReferencePdf}
+              onDesignPdfChange={setDesignPdf}
+              onExtraPromptChange={setExtraPrompt}
+              onStyleUrlChange={setStyleUrl}
+              onSubmit={handleSubmit}
+            />
+          </aside>
         </section>
       </main>
     )
@@ -149,81 +182,141 @@ export function UploadDeckPage() {
           </div>
         </CardHeader>
 
-        <form onSubmit={handleSubmit}>
-          <CardContent className="grid gap-5">
-            <FileInput
-              id="referencePdf"
-              label="Reference PDF"
-              description="Source document for factual content."
-              file={referencePdf}
-              onChange={setReferencePdf}
-            />
-            <FileInput
-              id="designPdf"
-              label="Design PDF"
-              description="Visual reference for the deck style."
-              file={designPdf}
-              onChange={setDesignPdf}
-            />
-
-            <label className="grid gap-2">
-              <span className="text-sm font-semibold text-slate-800">
-                Extra prompt
-              </span>
-              <Textarea
-                value={extraPrompt}
-                onChange={(event) => setExtraPrompt(event.target.value)}
-                rows={4}
-                className="min-h-28 resize-y rounded-lg border-slate-300 bg-white text-sm leading-6 focus-visible:border-emerald-600 focus-visible:ring-emerald-100"
-                placeholder="Emphasize dosing, contraindications, or patient counseling points."
-              />
-            </label>
-
-            <label className="grid gap-2">
-              <span className="text-sm font-semibold text-slate-800">
-                Optional style URL
-              </span>
-              <Input
-                type="url"
-                value={styleUrl}
-                onChange={(event) => setStyleUrl(event.target.value)}
-                className="h-11 rounded-lg border-slate-300 bg-white text-sm focus-visible:border-emerald-600 focus-visible:ring-emerald-100"
-                placeholder="https://example.com/brand-guidelines"
-              />
-            </label>
-
-            {errorMessage ? (
-              <div
-                role="alert"
-                className="flex gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
-              >
-                <AlertCircle className="mt-0.5 size-4 shrink-0" />
-                <span>{errorMessage}</span>
-              </div>
-            ) : null}
-          </CardContent>
-
-          <CardFooter className="mt-2 flex-col items-stretch gap-3">
-            <Button
-              type="submit"
-              size="lg"
-              className="w-full bg-emerald-700 hover:bg-emerald-800"
-              disabled={generateMutation.isPending}
-            >
-              {generateMutation.isPending ? (
-                <Loader2 className="animate-spin" />
-              ) : (
-                <Sparkles />
-              )}
-              {generateMutation.isPending ? "Generating" : "Generate"}
-            </Button>
-            <p className="text-center text-xs leading-5 text-slate-500">
-              Required: both PDFs. Prompt and URL are optional.
-            </p>
-          </CardFooter>
-        </form>
+        <GenerationForm
+          referencePdf={referencePdf}
+          designPdf={designPdf}
+          extraPrompt={extraPrompt}
+          styleUrl={styleUrl}
+          isPending={generateMutation.isPending}
+          submitLabel={submitLabel}
+          pendingLabel={pendingLabel}
+          errorMessage={errorMessage}
+          onReferencePdfChange={setReferencePdf}
+          onDesignPdfChange={setDesignPdf}
+          onExtraPromptChange={setExtraPrompt}
+          onStyleUrlChange={setStyleUrl}
+          onSubmit={handleSubmit}
+        />
       </Card>
     </main>
+  )
+}
+
+function GenerationForm({
+  referencePdf,
+  designPdf,
+  extraPrompt,
+  styleUrl,
+  isPending,
+  submitLabel,
+  pendingLabel,
+  errorMessage,
+  compact = false,
+  onReferencePdfChange,
+  onDesignPdfChange,
+  onExtraPromptChange,
+  onStyleUrlChange,
+  onSubmit,
+}: {
+  referencePdf: File | null
+  designPdf: File | null
+  extraPrompt: string
+  styleUrl: string
+  isPending: boolean
+  submitLabel: string
+  pendingLabel: string
+  errorMessage: string
+  compact?: boolean
+  onReferencePdfChange: (file: File | null) => void
+  onDesignPdfChange: (file: File | null) => void
+  onExtraPromptChange: (prompt: string) => void
+  onStyleUrlChange: (url: string) => void
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void
+}) {
+  const spacingClassName = compact ? "px-0" : ""
+
+  return (
+    <form onSubmit={onSubmit}>
+      <CardContent className={`grid gap-5 ${spacingClassName}`}>
+        <FileInput
+          id="referencePdf"
+          label="Reference PDF"
+          description="Source document for factual content."
+          file={referencePdf}
+          onChange={onReferencePdfChange}
+        />
+        <FileInput
+          id="designPdf"
+          label="Design PDF"
+          description="Visual reference for the deck style."
+          file={designPdf}
+          onChange={onDesignPdfChange}
+        />
+
+        <label className="grid gap-2">
+          <span className="text-sm font-semibold text-slate-800">
+            Extra prompt
+          </span>
+          <Textarea
+            value={extraPrompt}
+            onChange={(event) => onExtraPromptChange(event.target.value)}
+            rows={4}
+            className="min-h-28 resize-y rounded-lg border-slate-300 bg-white text-sm leading-6 focus-visible:border-emerald-600 focus-visible:ring-emerald-100"
+            placeholder="Emphasize dosing, contraindications, or patient counseling points."
+          />
+        </label>
+
+        <label className="grid gap-2">
+          <span className="text-sm font-semibold text-slate-800">
+            Optional style URL
+          </span>
+          <Input
+            type="url"
+            value={styleUrl}
+            onChange={(event) => onStyleUrlChange(event.target.value)}
+            className="h-11 rounded-lg border-slate-300 bg-white text-sm focus-visible:border-emerald-600 focus-visible:ring-emerald-100"
+            placeholder="https://example.com/brand-guidelines"
+          />
+        </label>
+
+        {errorMessage ? <ErrorAlert message={errorMessage} /> : null}
+      </CardContent>
+
+      <CardFooter
+        className={`mt-2 flex-col items-stretch gap-3 ${spacingClassName}`}
+      >
+        <Button
+          type="submit"
+          size="lg"
+          className="w-full bg-emerald-700 hover:bg-emerald-800"
+          disabled={isPending}
+        >
+          {isPending ? <Loader2 className="animate-spin" /> : <Sparkles />}
+          {isPending ? pendingLabel : submitLabel}
+        </Button>
+        <p className="text-center text-xs leading-5 text-slate-500">
+          Required: both PDFs. Prompt and URL are optional.
+        </p>
+      </CardFooter>
+    </form>
+  )
+}
+
+function ErrorAlert({
+  message,
+  className = "",
+}: {
+  message: string
+  className?: string
+}) {
+  return (
+    <div
+      role="alert"
+      className={`flex gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 ${className}`}
+    >
+      <AlertCircle className="mt-0.5 size-4 shrink-0" />
+      <span>{message}</span>
+    </div>
   )
 }
 

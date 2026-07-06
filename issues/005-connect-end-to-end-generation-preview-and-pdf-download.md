@@ -1,6 +1,6 @@
 # Connect End-to-End Generation, Preview, and PDF Download
 
-Labels: ready-for-agent
+Labels: done
 
 ## Parent
 
@@ -12,14 +12,14 @@ Replace the mocked generation path with the real generation route and connect th
 
 ## Acceptance criteria
 
-- [ ] The form submits real files and prompt inputs to the generation route.
-- [ ] TanStack Query reflects generation loading, success, and error states in the UI.
-- [ ] Successful generation renders the returned HTML artifact in the Shadow DOM preview.
-- [ ] PDF download uses the generated artifact currently shown in preview.
-- [ ] Export loading and error states are visible to the user.
-- [ ] Regenerating replaces the current artifact and updates the preview/download source.
-- [ ] User-facing errors are clear when generation or export fails.
-- [ ] End-to-end or integration coverage verifies the happy path with mocked server responses.
+- [x] The form submits real files and prompt inputs to the generation route.
+- [x] TanStack Query reflects generation loading, success, and error states in the UI.
+- [x] Successful generation renders the returned HTML artifact in the Shadow DOM preview.
+- [x] PDF download uses the generated artifact currently shown in preview.
+- [x] Export loading and error states are visible to the user.
+- [x] Regenerating replaces the current artifact and updates the preview/download source.
+- [x] User-facing errors are clear when generation or export fails.
+- [x] End-to-end or integration coverage verifies the happy path with mocked server responses.
 
 ## Blocked by
 
