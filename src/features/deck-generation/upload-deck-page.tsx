@@ -1,5 +1,12 @@
 import { useMutation } from "@tanstack/react-query"
-import { AlertCircle, FileText, Loader2, Sparkles } from "lucide-react"
+import { useServerFn } from "@tanstack/react-start"
+import {
+  AlertCircle,
+  Download,
+  FileText,
+  Loader2,
+  Sparkles,
+} from "lucide-react"
 import type { FormEvent } from "react"
 import { useState } from "react"
 
@@ -14,29 +21,37 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { generateDeck } from "@/server/deck-generation/api"
-import type { GenerateDeckResult } from "@/server/deck-generation/types"
+import { exportDeckPdf, generateDeck } from "@/server/deck-generation/api"
 import { DeckPreview } from "./components/deck-preview"
 
-type GenerateDeckAction = (formData: FormData) => Promise<GenerateDeckResult>
-
-const defaultGenerateDeckAction: GenerateDeckAction = (formData) =>
-  generateDeck({ data: formData })
-
-export function UploadDeckPage({
-  generateDeckAction = defaultGenerateDeckAction,
-}: {
-  generateDeckAction?: GenerateDeckAction
-}) {
+export function UploadDeckPage() {
   const [referencePdf, setReferencePdf] = useState<File | null>(null)
   const [designPdf, setDesignPdf] = useState<File | null>(null)
   const [extraPrompt, setExtraPrompt] = useState("")
   const [styleUrl, setStyleUrl] = useState("")
   const [validationError, setValidationError] = useState("")
+  const generateDeckServerFn = useServerFn(generateDeck)
+  const exportDeckPdfServerFn = useServerFn(exportDeckPdf)
 
-  // TODO: Fix as useServerFn()
   const generateMutation = useMutation({
-    mutationFn: generateDeckAction,
+    mutationFn: (formData: FormData) =>
+      generateDeckServerFn({ data: formData }),
+  })
+  const exportPdfMutation = useMutation({
+    mutationFn: (deckHtml: string) =>
+      exportDeckPdfServerFn({ data: { deckHtml } }),
+    onSuccess: ({ pdfBytes }) => {
+      const pdfBlob = new Blob([new Uint8Array(pdfBytes)], {
+        type: "application/pdf",
+      })
+      const objectUrl = URL.createObjectURL(pdfBlob)
+      const link = document.createElement("a")
+
+      link.href = objectUrl
+      link.download = "slidinator-deck.pdf"
+      link.click()
+      URL.revokeObjectURL(objectUrl)
+    },
   })
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -59,7 +74,12 @@ export function UploadDeckPage({
 
   const errorMessage =
     validationError ||
-    (generateMutation.error instanceof Error ? generateMutation.error.message : "")
+    (generateMutation.error instanceof Error
+      ? generateMutation.error.message
+      : "") ||
+    (exportPdfMutation.error instanceof Error
+      ? exportPdfMutation.error.message
+      : "")
   const result = generateMutation.data
 
   if (result) {
@@ -78,7 +98,30 @@ export function UploadDeckPage({
             <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
               {result.slideCount} generated slides
             </span>
+            <Button
+              type="button"
+              className="bg-emerald-700 hover:bg-emerald-800"
+              disabled={exportPdfMutation.isPending}
+              onClick={() => exportPdfMutation.mutate(result.deckHtml)}
+            >
+              {exportPdfMutation.isPending ? (
+                <Loader2 className="animate-spin" />
+              ) : (
+                <Download />
+              )}
+              {exportPdfMutation.isPending ? "Exporting" : "Download PDF"}
+            </Button>
           </div>
+
+          {errorMessage ? (
+            <div
+              role="alert"
+              className="mb-4 flex gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
+            >
+              <AlertCircle className="mt-0.5 size-4 shrink-0" />
+              <span>{errorMessage}</span>
+            </div>
+          ) : null}
 
           <div className="min-h-0 flex-1">
             <DeckPreview html={result.deckHtml} />
@@ -160,7 +203,7 @@ export function UploadDeckPage({
             ) : null}
           </CardContent>
 
-          <CardFooter className="flex-col items-stretch gap-3">
+          <CardFooter className="mt-2 flex-col items-stretch gap-3">
             <Button
               type="submit"
               size="lg"

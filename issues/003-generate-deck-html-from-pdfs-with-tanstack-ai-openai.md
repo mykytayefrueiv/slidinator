@@ -1,6 +1,6 @@
 # Generate Deck HTML from PDFs with AI SDK and OpenAI via OpenRouter
 
-Labels: ready-for-agent
+Labels: done
 
 ## Parent
 
@@ -11,6 +11,7 @@ Parent PRD: `docs/prd/pdf-guided-pharma-slide-deck-prototype.md`
 Implement the real server-side generation route. The route should accept multipart form input, extract factual content from the reference PDF, render design PDF pages as visual references, and compose a complete raw HTML deck artifact using AI SDK with OpenRouter. The route should validate the generated HTML, run one repair attempt if needed, and return the validated HTML artifact to the client.
 
 ## Additional info
+
 https://ai-sdk.dev/docs
 
 ## Acceptance criteria

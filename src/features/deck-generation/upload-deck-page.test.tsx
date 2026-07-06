@@ -1,14 +1,67 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react"
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest"
 
 import type { GenerateDeckResult } from "@/server/deck-generation/types"
+import type * as ReactStartModule from "@tanstack/react-start"
 
 import { UploadDeckPage } from "./upload-deck-page"
 
-const generateDeckActionMock = vi.fn<
-  (formData: FormData) => Promise<GenerateDeckResult>
->()
+const serverFunctionMocks = vi.hoisted(() => {
+  const generateDeckServerFn = vi.fn()
+  const exportDeckPdfServerFn = vi.fn()
+  const generateDeckAction = vi.fn()
+  const exportDeckPdfAction = vi.fn()
+
+  return {
+    generateDeckServerFn,
+    exportDeckPdfServerFn,
+    generateDeckAction,
+    exportDeckPdfAction,
+  }
+})
+
+vi.mock("@/server/deck-generation/api", () => ({
+  generateDeck: serverFunctionMocks.generateDeckServerFn,
+  exportDeckPdf: serverFunctionMocks.exportDeckPdfServerFn,
+}))
+
+vi.mock("@tanstack/react-start", async (importOriginal) => {
+  const actual = await importOriginal<typeof ReactStartModule>()
+
+  return {
+    ...actual,
+    useServerFn: (serverFn: unknown) => {
+      if (serverFn === serverFunctionMocks.generateDeckServerFn) {
+        return serverFunctionMocks.generateDeckAction
+      }
+
+      return serverFunctionMocks.exportDeckPdfAction
+    },
+  }
+})
+
+const generateDeckActionMock =
+  serverFunctionMocks.generateDeckAction as ReturnType<
+    typeof vi.fn<(input: { data: FormData }) => Promise<GenerateDeckResult>>
+  >
+const exportDeckPdfActionMock =
+  serverFunctionMocks.exportDeckPdfAction as ReturnType<
+    typeof vi.fn<
+      (input: {
+        data: { deckHtml: string }
+      }) => Promise<{ pdfBytes: Array<number> }>
+    >
+  >
+const createObjectUrlMock = vi.fn(() => "blob:slidinator-deck")
+const revokeObjectUrlMock = vi.fn()
+const anchorClickMock = vi.fn()
 
 function renderPage() {
   const queryClient = new QueryClient({
@@ -20,7 +73,7 @@ function renderPage() {
 
   return render(
     <QueryClientProvider client={queryClient}>
-      <UploadDeckPage generateDeckAction={generateDeckActionMock} />
+      <UploadDeckPage />
     </QueryClientProvider>
   )
 }
@@ -68,6 +121,13 @@ function mockDeckResult(): GenerateDeckResult {
 describe("upload-to-preview skeleton", () => {
   beforeEach(() => {
     generateDeckActionMock.mockReset()
+    exportDeckPdfActionMock.mockReset()
+    createObjectUrlMock.mockClear()
+    revokeObjectUrlMock.mockClear()
+    anchorClickMock.mockClear()
+    URL.createObjectURL = createObjectUrlMock
+    URL.revokeObjectURL = revokeObjectUrlMock
+    HTMLAnchorElement.prototype.click = anchorClickMock
   })
 
   afterEach(() => {
@@ -117,7 +177,9 @@ describe("upload-to-preview skeleton", () => {
   })
 
   test("shows mutation error state", async () => {
-    generateDeckActionMock.mockRejectedValue(new Error("Mock generation failed."))
+    generateDeckActionMock.mockRejectedValue(
+      new Error("Mock generation failed.")
+    )
     renderPage()
     uploadRequiredFiles()
 
@@ -143,9 +205,9 @@ describe("upload-to-preview skeleton", () => {
 
     await waitFor(() => {
       expect(previewHost.shadowRoot).toBeTruthy()
-      expect(previewHost.shadowRoot?.querySelectorAll(".slide-page").length).toBe(
-        1
-      )
+      expect(
+        previewHost.shadowRoot?.querySelectorAll(".slide-page").length
+      ).toBe(1)
       expect(previewHost.shadowRoot?.textContent).toContain("One")
     })
 
@@ -164,5 +226,32 @@ describe("upload-to-preview skeleton", () => {
     await waitFor(() => {
       expect(previewHost.shadowRoot?.textContent).toContain("Three")
     })
+  })
+
+  test("downloads the generated deck PDF from the preview", async () => {
+    const result = mockDeckResult()
+    generateDeckActionMock.mockResolvedValue(result)
+    exportDeckPdfActionMock.mockResolvedValue({
+      pdfBytes: [0x25, 0x50, 0x44, 0x46],
+    })
+    renderPage()
+    uploadRequiredFiles()
+
+    fireEvent.click(screen.getByRole("button", { name: /generate/i }))
+
+    const downloadButton = await screen.findByRole("button", {
+      name: /download pdf/i,
+    })
+
+    fireEvent.click(downloadButton)
+
+    await waitFor(() => {
+      expect(exportDeckPdfActionMock.mock.calls[0]?.[0]).toEqual({
+        data: { deckHtml: result.deckHtml },
+      })
+    })
+    expect(createObjectUrlMock).toHaveBeenCalled()
+    expect(anchorClickMock).toHaveBeenCalled()
+    expect(revokeObjectUrlMock).toHaveBeenCalledWith("blob:slidinator-deck")
   })
 })

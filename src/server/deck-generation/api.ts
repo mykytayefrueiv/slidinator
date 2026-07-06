@@ -1,10 +1,11 @@
 import { createServerFn } from "@tanstack/react-start"
 import { z } from "zod"
 
+import { DeckGenerationUserError, toUserFacingError } from "./generation-errors"
 import {
-  DeckGenerationUserError,
-  toUserFacingError,
-} from "./generation-errors"
+  InvalidDeckHtmlForPdfError,
+  exportHtmlDeckToPdf,
+} from "./pdf/export-html-to-pdf"
 import type { DeckGenerationInput } from "./types"
 
 const PdfFileSchema = z.instanceof(File, {
@@ -21,6 +22,10 @@ const GenerateDeckFormSchema = z
     extraPrompt: OptionalTextSchema.parse(formData.get("extraPrompt")),
     styleUrl: OptionalTextSchema.parse(formData.get("styleUrl")),
   }))
+
+const ExportDeckPdfSchema = z.object({
+  deckHtml: z.string().min(1, "Deck HTML is required."),
+})
 
 export const generateDeck = createServerFn({ method: "POST" })
   .validator(GenerateDeckFormSchema)
@@ -53,3 +58,25 @@ export const generateDeck = createServerFn({ method: "POST" })
       )
     }
   })
+
+export const exportDeckPdf = createServerFn({ method: "POST" })
+  .validator(ExportDeckPdfSchema)
+  .handler(async ({ data }) => exportDeckPdfBytes(data))
+
+export async function exportDeckPdfBytes({
+  deckHtml,
+}: z.infer<typeof ExportDeckPdfSchema>) {
+  try {
+    const pdfBytes = await exportHtmlDeckToPdf({ deckHtml })
+
+    return { pdfBytes: Array.from(pdfBytes) }
+  } catch (error) {
+    if (error instanceof InvalidDeckHtmlForPdfError) {
+      throw error
+    }
+
+    console.error("[deck-generation] PDF export failed", error)
+
+    throw new Error("Failed to export the deck PDF.")
+  }
+}
