@@ -1,4 +1,4 @@
-import { Trash2 } from "lucide-react"
+import { Loader2, Send, Trash2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
@@ -9,17 +9,23 @@ import type { SlideSelection } from "./types"
 type SelectionPromptPanelProps = {
   selections: Array<SlideSelection>
   activeSelectionId: string | null
+  canSubmit: boolean
+  isSubmitting: boolean
   onSelect: (selectionId: string) => void
   onPromptChange: (selectionId: string, prompt: string) => void
   onRemove: (selectionId: string) => void
+  onSubmit: () => void
 }
 
 export function SelectionPromptPanel({
   selections,
   activeSelectionId,
+  canSubmit,
+  isSubmitting,
   onSelect,
   onPromptChange,
   onRemove,
+  onSubmit,
 }: SelectionPromptPanelProps) {
   if (selections.length === 0) {
     return (
@@ -34,13 +40,29 @@ export function SelectionPromptPanel({
 
   return (
     <div className="border-t border-slate-200 bg-white px-4 py-3">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold text-slate-800">
-          Requested changes
-        </h2>
-        <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
-          {selections.length} selected
-        </span>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <h2 className="text-sm font-semibold text-slate-800">
+            Requested changes
+          </h2>
+          <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+            {selections.length} selected
+          </span>
+        </div>
+        <Button
+          type="button"
+          size="sm"
+          className="bg-emerald-700 hover:bg-emerald-800"
+          disabled={!canSubmit || isSubmitting}
+          onClick={onSubmit}
+        >
+          {isSubmitting ? (
+            <Loader2 className="animate-spin" />
+          ) : (
+            <Send className="size-4" />
+          )}
+          {isSubmitting ? "Submitting" : "Submit edit"}
+        </Button>
       </div>
 
       <div className="grid gap-3 lg:grid-cols-2">

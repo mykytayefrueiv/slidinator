@@ -1,9 +1,12 @@
 import type {
+  AreaSelection,
   DeckGenerationInput,
   DesignSourceMaterial,
+  EditDeckModelRequest,
   FactBrief,
   GenerateDeckResult,
   ReferenceSourceMaterial,
+  SlideImageInput,
 } from "./types"
 import { EXAMPLE_DECK_ID, exampleDeckHistory } from "./example-deck"
 
@@ -31,7 +34,21 @@ export type DeckAssistantMessage = {
   content: GenerateDeckResult
 }
 
-export type DeckAiMessage = DeckUserMessage | DeckAssistantMessage
+export type DeckEditUserMessage = {
+  role: "user"
+  content: {
+    kind: "edit"
+    deckId: string
+    currentHtml: string
+    selections: Array<AreaSelection>
+    slideImages: Array<SlideImageInput>
+  }
+}
+
+export type DeckAiMessage =
+  | DeckUserMessage
+  | DeckEditUserMessage
+  | DeckAssistantMessage
 
 export type DeckHistoryStore = Partial<Record<string, Array<DeckAiMessage>>>
 
@@ -103,11 +120,47 @@ export function getDeckHistory(deckId: string) {
 
 export function getGeneratedDeck(deckId: string) {
   const messages = getDeckHistory(deckId)
-  const assistantMessage = messages?.find(
-    (message) => message.role === "assistant"
-  )
+  const assistantMessage = messages
+    ?.slice()
+    .reverse()
+    .find((message) => message.role === "assistant")
 
   return assistantMessage?.content ?? null
+}
+
+export function appendDeckEditHistory({
+  deckId,
+  request,
+  deck,
+}: {
+  deckId: string
+  request: EditDeckModelRequest
+  deck: GenerateDeckResult
+}) {
+  const messages = getDeckHistory(deckId)
+
+  if (!messages) {
+    return null
+  }
+
+  messages.push(
+    {
+      role: "user",
+      content: {
+        kind: "edit",
+        deckId: request.deckId,
+        currentHtml: request.currentHtml,
+        selections: request.selections,
+        slideImages: request.slideImages,
+      },
+    },
+    {
+      role: "assistant",
+      content: deck,
+    }
+  )
+
+  return messages
 }
 
 export function clearDeckHistoryForTests() {

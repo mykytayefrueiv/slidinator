@@ -4,8 +4,9 @@ import { MAIN_PADDING, SLIDE_HEIGHT, SLIDE_WIDTH } from "./constants"
 import {
   SelectionOverlay,
   SelectionPromptPanel,
-  type SlideSelection,
 } from "./selection"
+import type { AreaSelection } from "@/server/deck-generation/types"
+import type { SlideSelection } from "./selection"
 import { ShadowSlide } from "./shadow-slide"
 import { SlideNavigation } from "./slide-navigation"
 import { SlideThumbnail } from "./slide-thumbnail"
@@ -13,9 +14,15 @@ import { parseDeckHtml } from "./utils"
 
 type DeckPreviewProps = {
   html: string
+  isSubmittingEdit?: boolean
+  onSubmitEdit?: (selections: Array<AreaSelection>) => Promise<unknown>
 }
 
-export function DeckPreview({ html }: DeckPreviewProps) {
+export function DeckPreview({
+  html,
+  isSubmittingEdit = false,
+  onSubmitEdit,
+}: DeckPreviewProps) {
   const { headHtml, slides } = useMemo(() => parseDeckHtml(html), [html])
   const [activeSlideIndex, setActiveSlideIndex] = useState(0)
   const [mainScale, setMainScale] = useState(1)
@@ -25,8 +32,6 @@ export function DeckPreview({ html }: DeckPreviewProps) {
     null
   )
   const mainStageRef = useRef<HTMLDivElement>(null)
-
-  console.log(selections)
 
   useEffect(() => {
     const stage = mainStageRef.current
@@ -67,14 +72,21 @@ export function DeckPreview({ html }: DeckPreviewProps) {
     return () => resizeObserver.disconnect()
   }, [])
 
+  useEffect(() => {
+    setSelections([])
+    setActiveSelectionId(null)
+  }, [html])
+
   const activeSlide = slides[activeSlideIndex] ?? ""
   const activeSlideId = `slide-${activeSlideIndex + 1}`
   const activeSlideSelections = selections.filter(
     (selection) => selection.slideId === activeSlideId
   )
+  const promptedSelections = selections.filter((selection) =>
+    selection.prompt.trim()
+  )
   const createSelectionId = () =>
-    "selection-" +
-    (crypto.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(16)}`)
+    "selection-" + crypto.randomUUID()
 
   return (
     <div className="grid h-full min-h-[440px] grid-cols-[116px_1fr] overflow-hidden rounded-lg border border-slate-200 bg-slate-100 shadow-inner">
@@ -155,6 +167,8 @@ export function DeckPreview({ html }: DeckPreviewProps) {
         <SelectionPromptPanel
           selections={selections}
           activeSelectionId={activeSelectionId}
+          canSubmit={Boolean(onSubmitEdit) && promptedSelections.length > 0}
+          isSubmitting={isSubmittingEdit}
           onSelect={setActiveSelectionId}
           onPromptChange={(selectionId, prompt) => {
             setSelections((currentSelections) =>
@@ -177,6 +191,25 @@ export function DeckPreview({ html }: DeckPreviewProps) {
             setActiveSelectionId((currentSelectionId) =>
               currentSelectionId === selectionId ? null : currentSelectionId
             )
+          }}
+          onSubmit={async () => {
+            if (!onSubmitEdit || promptedSelections.length === 0) {
+              return
+            }
+
+            try {
+              await onSubmitEdit(
+                promptedSelections.map((selection) => ({
+                  ...selection,
+                  prompt: selection.prompt.trim(),
+                }))
+              )
+              setSelections([])
+              setActiveSelectionId(null)
+              setIsEditMode(false)
+            } catch {
+              // React Query owns the visible error state in the parent page.
+            }
           }}
         />
       </div>

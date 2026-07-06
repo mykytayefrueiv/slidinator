@@ -12,14 +12,14 @@ Connect the rectangle selection UI on `/pdf/{deckId}` to the `editDeck` route so
 
 ## Acceptance criteria
 
-- [ ] The `/pdf/{deckId}` UI exposes an edit action after selections have prompts.
-- [ ] Submitting an edit sends `deckId`, current HTML, selections, and generated image context.
-- [ ] The edit action uses TanStack Query mutation loading, success, and error states.
-- [ ] Successful edit replaces the current HTML artifact in preview.
-- [ ] Successful edit preserves or updates the current `deckId` history consistently.
-- [ ] PDF download exports the edited artifact after a successful edit.
-- [ ] Errors from missing prompts, rendering failure, AI failure, or validation failure are visible to the user.
-- [ ] Tests cover the happy path and key error states with mocked server responses.
+- [x] The `/pdf/{deckId}` UI exposes an edit action after selections have prompts.
+- [x] Submitting an edit sends `deckId`, current HTML, and selections; the server generates image context internally.
+- [x] The edit action uses TanStack Query mutation loading, success, and error states.
+- [x] Successful edit replaces the current HTML artifact in preview.
+- [x] Successful edit preserves or updates the current `deckId` history consistently.
+- [x] PDF download exports the edited artifact after a successful edit.
+- [x] Errors from missing prompts, rendering failure, AI failure, or validation failure are visible to the user.
+- [x] Tests cover the happy path and key error states with mocked server responses.
 
 ## Blocked by
 

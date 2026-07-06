@@ -5,6 +5,8 @@ import { z } from "zod"
 import { DeckGenerationUserError, toUserFacingError } from "./generation-errors"
 import { getGeneratedDeck } from "./history-store"
 import type { DeckGenerationInput } from "./types"
+import type * as EditDeckModule from "./edit-deck"
+import type * as PdfExportModule from "./pdf/export-html-to-pdf"
 
 const PdfFileSchema = z.instanceof(File, {
   message: "PDF file is required.",
@@ -23,6 +25,30 @@ const GenerateDeckFormSchema = z
 
 const ExportDeckPdfSchema = z.object({
   deckHtml: z.string().min(1, "Deck HTML is required."),
+})
+
+const SelectionRectSchema = z.object({
+  x: z.number(),
+  y: z.number(),
+  width: z.number(),
+  height: z.number(),
+})
+
+const AreaSelectionSchema = z.object({
+  id: z.string().min(1, "Selection ID is required."),
+  slideId: z.string().min(1, "Slide ID is required."),
+  order: z.number().int().positive(),
+  renderedRect: SelectionRectSchema.optional(),
+  normalizedRect: SelectionRectSchema,
+  prompt: z.string().min(1, "Selection prompt is required."),
+})
+
+const EditDeckSchema = z.object({
+  deckId: z.string().min(1, "Deck ID is required."),
+  currentHtml: z.string().min(1, "Current deck HTML is required."),
+  selections: z
+    .array(AreaSelectionSchema)
+    .min(1, "At least one selection is required."),
 })
 
 const DeckIdSchema = z.object({
@@ -88,13 +114,17 @@ export const exportDeckPdf = createServerFn({ method: "POST" })
   .validator(ExportDeckPdfSchema)
   .handler(async ({ data }) => exportDeckPdfBytes(data))
 
+export const editDeck = createServerFn({ method: "POST" })
+  .validator(EditDeckSchema)
+  .handler(async ({ data }) => editDeckData(data))
+
 export async function exportDeckPdfBytes({
   deckHtml,
 }: z.infer<typeof ExportDeckPdfSchema>) {
   const pdfExporterPath = "./pdf/export-html-to-pdf"
   const { InvalidDeckHtmlForPdfError, exportHtmlDeckToPdf } = (await import(
     /* @vite-ignore */ pdfExporterPath
-  )) as typeof import("./pdf/export-html-to-pdf")
+  )) as typeof PdfExportModule
 
   try {
     const pdfBytes = await exportHtmlDeckToPdf({ deckHtml })
@@ -108,5 +138,27 @@ export async function exportDeckPdfBytes({
     console.error("[deck-generation] PDF export failed", error)
 
     throw new Error("Failed to export the deck PDF.")
+  }
+}
+
+export async function editDeckData(data: z.infer<typeof EditDeckSchema>) {
+  const editDeckPath = "./edit-deck"
+  const { editDeck: editDeckArtifact } = (await import(
+    /* @vite-ignore */ editDeckPath
+  )) as typeof EditDeckModule
+
+  try {
+    return await editDeckArtifact(data)
+  } catch (error) {
+    console.error("[deck-generation] deck edit failed", error)
+
+    if (error instanceof DeckGenerationUserError) {
+      throw error
+    }
+
+    throw new DeckGenerationUserError(
+      "model-generation",
+      "Failed to edit the deck."
+    )
   }
 }

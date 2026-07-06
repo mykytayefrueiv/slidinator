@@ -12,13 +12,13 @@ Update project documentation to explain the new `/pdf/{deckId}` workspace flow, 
 
 ## Acceptance criteria
 
-- [ ] Documentation explains how generation creates `deckId`, stores history, and redirects to `/pdf/{deckId}`.
-- [ ] Documentation explains that `/pdf/{deckId}` is the preview/edit/export workspace.
-- [ ] Documentation explains how rectangle selections, image context, geometry, and prompts are sent to `editDeck`.
-- [ ] Documentation explains that AI edits regenerate HTML and PDF remains an export.
-- [ ] Documentation states that history is in-memory and not durable.
-- [ ] Documentation includes the known limitations of full-HTML regeneration for localized edits.
-- [ ] Documentation includes local demo steps for generating, selecting, editing, previewing, and exporting.
+- [x] Documentation explains how generation creates `deckId`, stores history, and redirects to `/pdf/{deckId}`.
+- [x] Documentation explains that `/pdf/{deckId}` is the preview/edit/export workspace.
+- [x] Documentation explains how rectangle selections, image context, geometry, and prompts are sent to `editDeck`.
+- [x] Documentation explains that AI edits regenerate HTML and PDF remains an export.
+- [x] Documentation states that history is in-memory and not durable.
+- [x] Documentation includes the known limitations of full-HTML regeneration for localized edits.
+- [x] Documentation includes local demo steps for generating, selecting, editing, previewing, and exporting.
 
 ## Blocked by
 

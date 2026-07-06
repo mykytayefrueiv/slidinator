@@ -2,24 +2,31 @@ import { ArrowLeft, Download, Loader2 } from "lucide-react"
 
 import { ErrorAlert } from "@/components/error-alert"
 import { Button } from "@/components/ui/button"
-import type { GenerateDeckResult } from "@/server/deck-generation/types"
+import type {
+  AreaSelection,
+  GenerateDeckResult,
+} from "@/server/deck-generation/types"
 
 import { DeckPreview } from "./deck-preview"
 
 type GeneratedDeckViewProps = {
   deck: GenerateDeckResult
   errorMessage: string
+  isEditing: boolean
   isExporting: boolean
   onBackToStart: () => void
   onDownloadPdf: () => void
+  onSubmitEdit: (selections: Array<AreaSelection>) => Promise<unknown>
 }
 
 export function GeneratedDeckView({
   deck,
   errorMessage,
+  isEditing,
   isExporting,
   onBackToStart,
   onDownloadPdf,
+  onSubmitEdit,
 }: GeneratedDeckViewProps) {
   return (
     <main className="grid min-h-svh place-items-center bg-[#f6f8f7] p-4 text-slate-950 lg:p-6">
@@ -60,7 +67,11 @@ export function GeneratedDeckView({
           ) : null}
 
           <div className="min-h-0 flex-1">
-            <DeckPreview html={deck.deckHtml} />
+            <DeckPreview
+              html={deck.deckHtml}
+              isSubmittingEdit={isEditing}
+              onSubmitEdit={onSubmitEdit}
+            />
           </div>
         </div>
       </section>

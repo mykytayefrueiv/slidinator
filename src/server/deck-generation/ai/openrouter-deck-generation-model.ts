@@ -13,9 +13,14 @@ import {
   buildRepairPrompt,
   deckRepairSystemPrompt,
 } from "../prompts/deck-repair-prompt"
+import {
+  buildDeckEditPrompt,
+  deckEditSystemPrompt,
+} from "../prompts/deck-edit-prompt"
 import type {
   DeckGenerationInput,
   DesignSourceMaterial,
+  EditDeckModelRequest,
   FactBrief,
   ReferenceSourceMaterial,
   RepairDeckHtmlInput,
@@ -39,6 +44,7 @@ export type DeckGenerationModel = {
     facts: FactBrief
   }) => Promise<string>
   repairDeckHtml: (input: RepairDeckHtmlInput) => Promise<string>
+  editDeckHtml: (input: EditDeckModelRequest) => Promise<string>
 }
 
 export function createOpenRouterDeckGenerationModel(): DeckGenerationModel {
@@ -171,6 +177,47 @@ export function createOpenRouterDeckGenerationModel(): DeckGenerationModel {
         )
       }
     },
+    async editDeckHtml(input) {
+      const prompt = buildDeckEditPrompt(input)
+
+      try {
+        console.log("[deck-generation] model call started", {
+          kind: "edit",
+          provider: provider.providerName,
+          promptLength: prompt.length,
+          imageCount: input.slideImages.length,
+          maxTokens: 6_000,
+        })
+
+        const result = await generateText({
+          model: provider.model,
+          system: deckEditSystemPrompt(),
+          messages: buildEditMessages(prompt, input.slideImages),
+          temperature: 0.2,
+          maxOutputTokens: 6_000,
+        })
+
+        console.log("[deck-generation] model call completed", {
+          kind: "edit",
+          provider: provider.providerName,
+          outputLength: result.text.length,
+        })
+
+        return stripModelWrapper(result.text)
+      } catch (error) {
+        console.error("[deck-generation] model call failed", {
+          kind: "edit",
+          provider: provider.providerName,
+          message: error instanceof Error ? error.message : String(error),
+        })
+
+        throw new DeckGenerationUserError(
+          "model-generation",
+          "The AI model could not edit the deck response. Check provider credentials and try again.",
+          error
+        )
+      }
+    },
   }
 }
 
@@ -202,6 +249,26 @@ function designImages(design: DesignSourceMaterial) {
       data: image.data,
       mediaType: image.mediaType,
     }))
+}
+
+function buildEditMessages(
+  text: string,
+  images: Array<{ slideId: string; mimeType: string; data: string }>
+): Array<ModelMessage> {
+  return [
+    {
+      role: "user",
+      content: [
+        { type: "text", text },
+        ...images.map((image) => ({
+          type: "file" as const,
+          data: image.data,
+          mediaType: image.mimeType,
+          filename: `${image.slideId}.png`,
+        })),
+      ],
+    },
+  ]
 }
 
 function createOpenRouterProvider() {

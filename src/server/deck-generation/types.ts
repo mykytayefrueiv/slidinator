@@ -52,6 +52,38 @@ export type RepairDeckHtmlInput = {
 
 export type RepairDeckHtml = (input: RepairDeckHtmlInput) => Promise<string>
 
+export type SelectionRect = {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+export type AreaSelection = {
+  id: string
+  slideId: string
+  order: number
+  renderedRect?: SelectionRect
+  normalizedRect: SelectionRect
+  prompt: string
+}
+
+export type SlideImageInput = {
+  slideId: string
+  mimeType: "image/png" | "image/jpeg"
+  data: string
+}
+
+export type EditDeckRequest = {
+  deckId: string
+  currentHtml: string
+  selections: Array<AreaSelection>
+}
+
+export type EditDeckModelRequest = EditDeckRequest & {
+  slideImages: Array<SlideImageInput>
+}
+
 export type ReferenceSourceMaterial = {
   fileName: string
   pageCount: number
