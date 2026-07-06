@@ -1,10 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 
-import {
-  MAIN_PADDING,
-  SLIDE_HEIGHT,
-  SLIDE_WIDTH,
-} from "./constants"
+import { MAIN_PADDING, SLIDE_HEIGHT, SLIDE_WIDTH } from "./constants"
 import { parseDeckHtml } from "./helpers"
 import { ShadowSlide } from "./shadow-slide"
 import { SlideNavigation } from "./slide-navigation"
@@ -41,16 +37,17 @@ export function DeckPreview({ html }: DeckPreviewProps) {
       setMainScale(nextScale)
     }
 
-    updateScale(stage.clientWidth || SLIDE_WIDTH, stage.clientHeight || SLIDE_HEIGHT)
+    updateScale(
+      stage.clientWidth || SLIDE_WIDTH,
+      stage.clientHeight || SLIDE_HEIGHT
+    )
 
     if (!("ResizeObserver" in window)) {
       return
     }
 
     const resizeObserver = new ResizeObserver(([entry]) => {
-      if (entry) {
-        updateScale(entry.contentRect.width, entry.contentRect.height)
-      }
+      updateScale(entry.contentRect.width, entry.contentRect.height)
     })
 
     resizeObserver.observe(stage)
@@ -83,13 +80,15 @@ export function DeckPreview({ html }: DeckPreviewProps) {
             setActiveSlideIndex((index) => Math.max(0, index - 1))
           }
           onNext={() =>
-            setActiveSlideIndex((index) => Math.min(slides.length - 1, index + 1))
+            setActiveSlideIndex((index) =>
+              Math.min(slides.length - 1, index + 1)
+            )
           }
         />
 
         <div
           ref={mainStageRef}
-          className="grid min-h-0 flex-1 place-items-center overflow-auto p-6"
+          className="grid min-h-0 flex-1 place-items-start justify-items-center overflow-auto p-6"
         >
           <ShadowSlide
             headHtml={headHtml}

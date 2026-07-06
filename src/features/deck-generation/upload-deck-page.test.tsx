@@ -239,8 +239,9 @@ describe("upload-to-preview skeleton", () => {
     fireEvent.click(screen.getByRole("button", { name: /generate/i }))
 
     expect(await screen.findByText("3 generated slides")).toBeTruthy()
-    expect(screen.getByLabelText(/Reference PDF/)).toBeTruthy()
-    expect(screen.getByLabelText(/Design PDF/)).toBeTruthy()
+    expect(screen.queryByLabelText(/Reference PDF/)).toBeNull()
+    expect(screen.queryByLabelText(/Design PDF/)).toBeNull()
+    expect(screen.getByRole("button", { name: /^back$/i })).toBeTruthy()
 
     const previewHost = screen.getByTestId("deck-preview-host")
 
@@ -325,58 +326,32 @@ describe("upload-to-preview skeleton", () => {
     expect(alert.textContent).toContain("Mock export failed.")
   })
 
-  test("regenerating replaces the preview and PDF download source", async () => {
-    let resolveRegeneration: (result: GenerateDeckResult) => void = () => {}
-    const firstResult = mockDeckResult({
-      artifactId: "first-artifact",
-      firstSlideText: "Original deck",
-    })
-    const secondResult = mockDeckResult({
-      artifactId: "second-artifact",
-      firstSlideText: "Regenerated deck",
-    })
-    generateDeckActionMock
-      .mockResolvedValueOnce(firstResult)
-      .mockReturnValueOnce(
-        new Promise<GenerateDeckResult>((resolve) => {
-          resolveRegeneration = resolve
-        })
-      )
-    exportDeckPdfActionMock.mockResolvedValue({
-      pdfBytes: [0x25, 0x50, 0x44, 0x46],
-    })
+  test("back returns to a fresh start card", async () => {
+    generateDeckActionMock.mockResolvedValue(mockDeckResult())
     renderPage()
     uploadRequiredFiles()
+    fireEvent.change(screen.getByLabelText("Extra prompt"), {
+      target: { value: "Remember this prompt." },
+    })
+    fireEvent.change(screen.getByLabelText("Optional style URL"), {
+      target: { value: "https://example.com/style" },
+    })
 
     fireEvent.click(screen.getByRole("button", { name: /^generate$/i }))
 
-    const previewHost = await screen.findByTestId("deck-preview-host")
+    expect(await screen.findByText("3 generated slides")).toBeTruthy()
 
-    await waitFor(() => {
-      expect(previewHost.shadowRoot?.textContent).toContain("Original deck")
-    })
+    fireEvent.click(screen.getByRole("button", { name: /^back$/i }))
 
-    fireEvent.change(screen.getByLabelText("Extra prompt"), {
-      target: { value: "Make the second version." },
-    })
-    fireEvent.click(screen.getByRole("button", { name: /regenerate deck/i }))
+    expect(screen.getByRole("button", { name: /^generate$/i })).toBeTruthy()
+    expect(screen.queryByText("3 generated slides")).toBeNull()
+    expect(screen.queryByRole("button", { name: /download pdf/i })).toBeNull()
+    expect(screen.getAllByText("Choose a PDF").length).toBe(2)
 
-    expect(
-      await screen.findByRole("button", { name: /regenerating/i })
-    ).toBeTruthy()
-
-    resolveRegeneration(secondResult)
-
-    await waitFor(() => {
-      expect(previewHost.shadowRoot?.textContent).toContain("Regenerated deck")
-    })
-
-    fireEvent.click(screen.getByRole("button", { name: /download pdf/i }))
-
-    await waitFor(() => {
-      expect(exportDeckPdfActionMock).toHaveBeenCalledWith({
-        data: { deckHtml: secondResult.deckHtml },
-      })
-    })
+    expect(screen.getByLabelText("Extra prompt")).toHaveProperty("value", "")
+    expect(screen.getByLabelText("Optional style URL")).toHaveProperty(
+      "value",
+      ""
+    )
   })
 })

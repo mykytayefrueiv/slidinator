@@ -1,7 +1,8 @@
-import { useMutation } from "@tanstack/react-query"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useServerFn } from "@tanstack/react-start"
 import {
   AlertCircle,
+  ArrowLeft,
   Download,
   FileText,
   Loader2,
@@ -26,6 +27,7 @@ import type { GenerateDeckResult } from "@/server/deck-generation/types"
 import { DeckPreview } from "./components/deck-preview"
 
 export function UploadDeckPage() {
+  const queryClient = useQueryClient()
   const [referencePdf, setReferencePdf] = useState<File | null>(null)
   const [designPdf, setDesignPdf] = useState<File | null>(null)
   const [extraPrompt, setExtraPrompt] = useState("")
@@ -80,6 +82,18 @@ export function UploadDeckPage() {
     generateMutation.mutate(formData)
   }
 
+  function handleBackToStart() {
+    setGeneratedDeck(null)
+    setReferencePdf(null)
+    setDesignPdf(null)
+    setExtraPrompt("")
+    setStyleUrl("")
+    setValidationError("")
+    generateMutation.reset()
+    exportPdfMutation.reset()
+    queryClient.clear()
+  }
+
   const result = generatedDeck
   const errorMessage =
     validationError ||
@@ -89,22 +103,30 @@ export function UploadDeckPage() {
     (exportPdfMutation.error instanceof Error
       ? exportPdfMutation.error.message
       : "")
-  const submitLabel = result ? "Regenerate deck" : "Generate"
-  const pendingLabel = result ? "Regenerating" : "Generating"
 
   if (result) {
     return (
       <main className="grid min-h-svh place-items-center bg-[#f6f8f7] p-4 text-slate-950 lg:p-6">
-        <section className="grid h-[calc(100svh-32px)] w-full max-w-[1480px] min-w-0 grid-cols-1 gap-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm lg:h-[calc(100svh-48px)] lg:grid-cols-[minmax(0,1fr)_360px]">
-          <div className="flex min-h-0 min-w-0 flex-col">
+        <section className="flex h-[calc(100svh-32px)] w-full max-w-[1480px] min-w-0 flex-col rounded-lg border border-slate-200 bg-white p-4 shadow-sm lg:h-[calc(100svh-48px)]">
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="text-xs font-semibold tracking-[0.16em] text-slate-500 uppercase">
-                  Shadow DOM preview
-                </p>
-                <h1 className="mt-1 text-xl font-semibold text-slate-950">
-                  Generated HTML deck
-                </h1>
+              <div className="flex min-w-0 items-start gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleBackToStart}
+                >
+                  <ArrowLeft />
+                  Back
+                </Button>
+                <div>
+                  <p className="text-xs font-semibold tracking-[0.16em] text-slate-500 uppercase">
+                    Shadow DOM preview
+                  </p>
+                  <h1 className="mt-1 text-xl font-semibold text-slate-950">
+                    Generated HTML deck
+                  </h1>
+                </div>
               </div>
               <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-800">
                 {result.slideCount} generated slides
@@ -132,33 +154,6 @@ export function UploadDeckPage() {
               <DeckPreview html={result.deckHtml} />
             </div>
           </div>
-
-          <aside className="min-h-0 overflow-y-auto rounded-lg border border-slate-200 bg-slate-50 p-4">
-            <div className="mb-4">
-              <p className="text-xs font-semibold tracking-[0.16em] text-emerald-700 uppercase">
-                Inputs
-              </p>
-              <h2 className="mt-1 text-lg font-semibold text-slate-950">
-                Regenerate from PDFs
-              </h2>
-            </div>
-            <GenerationForm
-              referencePdf={referencePdf}
-              designPdf={designPdf}
-              extraPrompt={extraPrompt}
-              styleUrl={styleUrl}
-              isPending={generateMutation.isPending}
-              submitLabel={submitLabel}
-              pendingLabel={pendingLabel}
-              errorMessage=""
-              compact
-              onReferencePdfChange={setReferencePdf}
-              onDesignPdfChange={setDesignPdf}
-              onExtraPromptChange={setExtraPrompt}
-              onStyleUrlChange={setStyleUrl}
-              onSubmit={handleSubmit}
-            />
-          </aside>
         </section>
       </main>
     )
@@ -188,8 +183,8 @@ export function UploadDeckPage() {
           extraPrompt={extraPrompt}
           styleUrl={styleUrl}
           isPending={generateMutation.isPending}
-          submitLabel={submitLabel}
-          pendingLabel={pendingLabel}
+          submitLabel="Generate"
+          pendingLabel="Generating"
           errorMessage={errorMessage}
           onReferencePdfChange={setReferencePdf}
           onDesignPdfChange={setDesignPdf}

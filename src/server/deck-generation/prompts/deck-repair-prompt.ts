@@ -1,7 +1,8 @@
 export function deckRepairSystemPrompt() {
   return `You repair invalid raw HTML slide decks.
 Return raw HTML only: no markdown fences, JSON, commentary, or explanations.
-Preserve factual content, remove unsafe markup, and satisfy the validator exactly.`
+Preserve the important factual message, remove unsafe markup, and satisfy the validator exactly.
+Keep slides readable: shorten copy before shrinking text or crowding the layout.`
 }
 
 export function buildRepairPrompt({

@@ -16,13 +16,74 @@ export const Route = createRootRoute({
         content: "width=device-width, initial-scale=1",
       },
       {
-        title: "TanStack Start Starter",
+        title: "Slidinator | PDF-Guided Pharma Deck Generator",
+      },
+      {
+        name: "description",
+        content:
+          "Generate compact pharma training slide decks from reference and design PDFs, preview validated HTML slides, and export to PDF.",
+      },
+      {
+        name: "application-name",
+        content: "Slidinator",
+      },
+      {
+        name: "theme-color",
+        content: "#047857",
+      },
+      {
+        property: "og:type",
+        content: "website",
+      },
+      {
+        property: "og:site_name",
+        content: "Slidinator",
+      },
+      {
+        property: "og:title",
+        content: "Slidinator | PDF-Guided Pharma Deck Generator",
+      },
+      {
+        property: "og:description",
+        content:
+          "Upload source and design PDFs to generate validated HTML pharma training slides with PDF export.",
+      },
+      {
+        name: "twitter:card",
+        content: "summary",
+      },
+      {
+        name: "twitter:title",
+        content: "Slidinator | PDF-Guided Pharma Deck Generator",
+      },
+      {
+        name: "twitter:description",
+        content:
+          "Generate compact pharma training decks from reference and design PDFs.",
       },
     ],
     links: [
       {
         rel: "stylesheet",
         href: appCss,
+      },
+      {
+        rel: "icon",
+        href: "/favicon.ico",
+        sizes: "any",
+      },
+      {
+        rel: "icon",
+        type: "image/svg+xml",
+        href: "/favicon.svg",
+      },
+      {
+        rel: "apple-touch-icon",
+        href: "/apple-touch-icon.png",
+      },
+      {
+        rel: "manifest",
+        href: "/manifest.json",
       },
     ],
   }),
