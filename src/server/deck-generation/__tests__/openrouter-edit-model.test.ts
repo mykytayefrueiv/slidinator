@@ -37,9 +37,8 @@ describe("OpenRouter deck edit model", () => {
   })
 
   test("calls AI SDK with text plus slide image file content parts", async () => {
-    const { createOpenRouterDeckGenerationModel } = await import(
-      "../ai/openrouter-deck-generation-model"
-    )
+    const { createOpenRouterDeckGenerationModel } =
+      await import("../ai/openrouter-deck-generation-model")
 
     const model = createOpenRouterDeckGenerationModel()
     const result = await model.editDeckHtml({

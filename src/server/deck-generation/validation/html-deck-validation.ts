@@ -49,10 +49,15 @@ export function validateDeckHtml(html: string): DeckValidationResult {
     })
   }
 
-  const styleText = elements
-    .filter((element) => element.tagName === "style")
-    .map((element) => textContent(element))
-    .join("\n")
+  const styleTexts = []
+
+  for (const element of elements) {
+    if (element.tagName === "style") {
+      styleTexts.push(textContent(element))
+    }
+  }
+
+  const styleText = styleTexts.join("\n")
 
   if (!hasDeterministicPrintCss(styleText)) {
     errors.push({

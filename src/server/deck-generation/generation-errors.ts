@@ -1,9 +1,5 @@
 export type DeckGenerationErrorCode =
-  | "upload"
-  | "extraction"
-  | "model-generation"
-  | "validation"
-  | "repair"
+  "upload" | "extraction" | "model-generation" | "validation" | "repair"
 
 export class DeckGenerationUserError extends Error {
   constructor(

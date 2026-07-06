@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useServerFn } from "@tanstack/react-start"
 import { Loader2, Sparkles } from "lucide-react"
 import type { FormEvent } from "react"
@@ -26,10 +26,12 @@ export function UploadDeckPage() {
   const [styleUrl, setStyleUrl] = useState("")
   const [validationError, setValidationError] = useState("")
   const generateDeckServerFn = useServerFn(generateDeck)
+  const queryClient = useQueryClient()
 
   const generateMutation = useMutation({
     mutationFn: (formData: FormData) =>
       generateDeckServerFn({ data: formData }),
+    onSuccess: () => queryClient.invalidateQueries(),
   })
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -91,11 +93,12 @@ export function UploadDeckPage() {
               onChange={setDesignPdf}
             />
 
-            <label className="grid gap-2">
+            <label className="grid gap-2" htmlFor="extraPrompt">
               <span className="text-sm font-semibold text-slate-800">
                 Extra prompt
               </span>
               <Textarea
+                id="extraPrompt"
                 value={extraPrompt}
                 onChange={(event) => setExtraPrompt(event.target.value)}
                 rows={4}
@@ -104,11 +107,12 @@ export function UploadDeckPage() {
               />
             </label>
 
-            <label className="grid gap-2">
+            <label className="grid gap-2" htmlFor="styleUrl">
               <span className="text-sm font-semibold text-slate-800">
                 Optional style URL
               </span>
               <Input
+                id="styleUrl"
                 type="url"
                 value={styleUrl}
                 onChange={(event) => setStyleUrl(event.target.value)}

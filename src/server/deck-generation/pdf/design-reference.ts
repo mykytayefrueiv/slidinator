@@ -1,8 +1,5 @@
 import { DeckGenerationUserError } from "../generation-errors"
-import {
-  assertPdfFile,
-  loadPdfDocument,
-} from "./pdf-runtime"
+import { assertPdfFile, loadPdfDocument } from "./pdf-runtime"
 import type { DesignSourceMaterial } from "../types"
 import type { PdfPage } from "./pdf-runtime"
 
@@ -18,7 +15,6 @@ export async function renderDesignReference(
   try {
     const document = await loadPdfDocument(file)
     const pageLimit = Math.min(document.numPages, MAX_DESIGN_SAMPLE_PAGES)
-    const samples: DesignSourceMaterial["samples"] = []
 
     console.log("[deck-generation] rendering design PDF", {
       fileName: file.name,
@@ -27,31 +23,38 @@ export async function renderDesignReference(
       renderWidth: DESIGN_RENDER_WIDTH,
     })
 
-    for (let pageNumber = 1; pageNumber <= pageLimit; pageNumber += 1) {
-      const page = await document.getPage(pageNumber)
-      const viewport = page.getViewport({ scale: 1 })
-      const renderScale = DESIGN_RENDER_WIDTH / viewport.width
-      const renderViewport = page.getViewport({ scale: renderScale })
-      const renderedImage = await renderPageToPng(page, renderViewport)
-      const textBlocks = await sampleTextBlocks(page)
+    const samples = await Promise.all(
+      Array.from({ length: pageLimit }, async (_, index) => {
+        const pageNumber = index + 1
+        const page = await document.getPage(pageNumber)
+        const viewport = page.getViewport({ scale: 1 })
+        const renderScale = DESIGN_RENDER_WIDTH / viewport.width
+        const renderViewport = page.getViewport({ scale: renderScale })
+        const [renderedImage, textBlocks] = await Promise.all([
+          renderPageToPng(page, renderViewport),
+          sampleTextBlocks(page),
+        ])
 
-      samples.push({
-        pageNumber,
-        width: Math.round(viewport.width),
-        height: Math.round(viewport.height),
-        renderedImage,
-        textBlocks,
-      })
+        const sample = {
+          pageNumber,
+          width: Math.round(viewport.width),
+          height: Math.round(viewport.height),
+          renderedImage,
+          textBlocks,
+        }
 
-      console.log("[deck-generation] rendered design PDF page", {
-        fileName: file.name,
-        pageNumber,
-        renderedWidth: renderedImage.width,
-        renderedHeight: renderedImage.height,
-        imageBytes: renderedImage.data.byteLength,
-        textBlockCount: textBlocks.length,
+        console.log("[deck-generation] rendered design PDF page", {
+          fileName: file.name,
+          pageNumber,
+          renderedWidth: renderedImage.width,
+          renderedHeight: renderedImage.height,
+          imageBytes: renderedImage.data.byteLength,
+          textBlockCount: textBlocks.length,
+        })
+
+        return sample
       })
-    }
+    )
 
     if (samples.length === 0) {
       throw new DeckGenerationUserError(
@@ -104,19 +107,28 @@ async function renderPageToPng(
 
 async function sampleTextBlocks(page: PdfPage) {
   const textContent = await page.getTextContent()
+  const textBlocks = []
 
-  return textContent.items
-    .map((item) => {
-      const text = item.str?.trim() ?? ""
-      const transform = item.transform ?? []
+  for (const item of textContent.items) {
+    const text = item.str?.trim() ?? ""
 
-      return {
-        text,
-        x: Math.round(transform[4] ?? 0),
-        y: Math.round(transform[5] ?? 0),
-        fontName: item.fontName,
-      }
+    if (!text) {
+      continue
+    }
+
+    const transform = item.transform ?? []
+
+    textBlocks.push({
+      text,
+      x: Math.round(transform[4] ?? 0),
+      y: Math.round(transform[5] ?? 0),
+      fontName: item.fontName,
     })
-    .filter((item) => item.text.length > 0)
-    .slice(0, MAX_DESIGN_TEXT_BLOCKS_PER_PAGE)
+
+    if (textBlocks.length >= MAX_DESIGN_TEXT_BLOCKS_PER_PAGE) {
+      break
+    }
+  }
+
+  return textBlocks
 }

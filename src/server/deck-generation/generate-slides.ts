@@ -14,8 +14,10 @@ export async function generateSlides(
   input: DeckGenerationInput
 ): Promise<GenerateDeckResult> {
   const model = createOpenRouterDeckGenerationModel()
-  const reference = await extractReferenceSource(input.referenceFile)
-  const design = await renderDesignReference(input.designFile)
+  const [reference, design] = await Promise.all([
+    extractReferenceSource(input.referenceFile),
+    renderDesignReference(input.designFile),
+  ])
   const attachedDesignImages = design.samples.filter(
     (sample) => sample.renderedImage
   ).length

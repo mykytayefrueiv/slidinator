@@ -76,8 +76,7 @@ function serializeAttributes(
 
   return attributes
     .map(
-      (attribute) =>
-        `${attribute.name}="${escapeAttribute(attribute.value)}"`
+      (attribute) => `${attribute.name}="${escapeAttribute(attribute.value)}"`
     )
     .join(" ")
 }

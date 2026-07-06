@@ -10,7 +10,7 @@ type Bounds = {
   height: number
 }
 
-export const MIN_SELECTION_SIZE = 8
+const MIN_SELECTION_SIZE = 8
 
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max)

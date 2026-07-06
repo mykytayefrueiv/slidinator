@@ -74,36 +74,35 @@ export async function renderSlideImages({
     await addSelectionOverlays(page, selectionsForOverlay(selections))
 
     const slideCount = await page.locator(SLIDE_SELECTOR).count()
-    const images: Array<SlideImageContext> = []
 
-    for (const slideId of uniqueStrings(slideIds)) {
-      const slideIndex = slideIndexFromId(slideId)
+    return await Promise.all(
+      uniqueStrings(slideIds).map(async (slideId) => {
+        const slideIndex = slideIndexFromId(slideId)
 
-      if (slideIndex >= slideCount) {
-        throw new SlideImageRenderError(
-          `Requested slide "${slideId}" was not found. Deck contains ${slideCount} slide(s).`
-        )
-      }
+        if (slideIndex >= slideCount) {
+          throw new SlideImageRenderError(
+            `Requested slide "${slideId}" was not found. Deck contains ${slideCount} slide(s).`
+          )
+        }
 
-      const imageBytes = await page
-        .locator(SLIDE_SELECTOR)
-        .nth(slideIndex)
-        .screenshot({ type: "png" })
-      const dataUrl = `data:${PNG_MEDIA_TYPE};base64,${Buffer.from(imageBytes).toString("base64")}`
+        const imageBytes = await page
+          .locator(SLIDE_SELECTOR)
+          .nth(slideIndex)
+          .screenshot({ type: "png" })
+        const dataUrl = `data:${PNG_MEDIA_TYPE};base64,${Buffer.from(imageBytes).toString("base64")}`
 
-      images.push({
-        slideId,
-        mediaType: PNG_MEDIA_TYPE,
-        dataUrl,
-        aiContent: {
-          type: "image",
-          image: dataUrl,
+        return {
+          slideId,
           mediaType: PNG_MEDIA_TYPE,
-        },
+          dataUrl,
+          aiContent: {
+            type: "image",
+            image: dataUrl,
+            mediaType: PNG_MEDIA_TYPE,
+          },
+        }
       })
-    }
-
-    return images
+    )
   } finally {
     await browser.close()
   }
@@ -146,30 +145,34 @@ async function addSelectionOverlays(
       const rect = selection.normalizedRect
       const overlay = document.createElement("div")
       overlay.setAttribute("data-slidinator-selection", selection.id)
-      overlay.style.position = "absolute"
-      overlay.style.left = `${rect.x * 100}%`
-      overlay.style.top = `${rect.y * 100}%`
-      overlay.style.width = `${rect.width * 100}%`
-      overlay.style.height = `${rect.height * 100}%`
-      overlay.style.boxSizing = "border-box"
-      overlay.style.border = "4px solid #f97316"
-      overlay.style.background = "rgba(249, 115, 22, 0.14)"
-      overlay.style.zIndex = "2147483647"
-      overlay.style.pointerEvents = "none"
+      overlay.style.cssText = [
+        "position: absolute",
+        `left: ${rect.x * 100}%`,
+        `top: ${rect.y * 100}%`,
+        `width: ${rect.width * 100}%`,
+        `height: ${rect.height * 100}%`,
+        "box-sizing: border-box",
+        "border: 4px solid #f97316",
+        "background: rgba(249, 115, 22, 0.14)",
+        "z-index: 2147483647",
+        "pointer-events: none",
+      ].join(";")
 
       const label = document.createElement("div")
       label.textContent = String(selection.order)
-      label.style.position = "absolute"
-      label.style.left = "0"
-      label.style.top = "0"
-      label.style.transform = "translate(-4px, -100%)"
-      label.style.minWidth = "28px"
-      label.style.height = "28px"
-      label.style.borderRadius = "999px"
-      label.style.background = "#f97316"
-      label.style.color = "white"
-      label.style.font = "700 16px/28px Arial, sans-serif"
-      label.style.textAlign = "center"
+      label.style.cssText = [
+        "position: absolute",
+        "left: 0",
+        "top: 0",
+        "transform: translate(-4px, -100%)",
+        "min-width: 28px",
+        "height: 28px",
+        "border-radius: 999px",
+        "background: #f97316",
+        "color: white",
+        "font: 700 16px/28px Arial, sans-serif",
+        "text-align: center",
+      ].join(";")
 
       overlay.append(label)
       slide.append(overlay)
@@ -209,7 +212,15 @@ function selectionsForOverlay(
 }
 
 function uniqueStrings(values: Array<string>) {
-  return [...new Set(values.map((value) => value.trim()).filter(Boolean))]
+  return [
+    ...new Set(
+      values.flatMap((value) => {
+        const trimmedValue = value.trim()
+
+        return trimmedValue ? [trimmedValue] : []
+      })
+    ),
+  ]
 }
 
 function slideIndexFromId(slideId: string) {

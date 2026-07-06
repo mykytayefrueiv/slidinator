@@ -68,6 +68,7 @@ export function GeneratedDeckView({
 
           <div className="min-h-0 flex-1">
             <DeckPreview
+              key={deck.deckHtml}
               html={deck.deckHtml}
               isSubmittingEdit={isEditing}
               onSubmitEdit={onSubmitEdit}

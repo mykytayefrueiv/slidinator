@@ -1,8 +1,5 @@
 import { DeckGenerationUserError } from "../generation-errors"
-import {
-  assertPdfFile,
-  loadPdfDocument,
-} from "./pdf-runtime"
+import { assertPdfFile, loadPdfDocument } from "./pdf-runtime"
 import type { ReferenceSourceMaterial } from "../types"
 
 const MAX_REFERENCE_TEXT_LENGTH = 24_000
@@ -21,19 +18,33 @@ export async function extractReferenceSource(
       pageCount: document.numPages,
     })
 
-    for (let pageNumber = 1; pageNumber <= document.numPages; pageNumber += 1) {
-      const page = await document.getPage(pageNumber)
-      const textContent = await page.getTextContent()
-      const pageText = textContent.items
-        .map((item) => item.str?.trim() ?? "")
-        .filter(Boolean)
-        .join(" ")
+    const extractedPages = await Promise.all(
+      Array.from({ length: document.numPages }, async (_, index) => {
+        const pageNumber = index + 1
+        const page = await document.getPage(pageNumber)
+        const textContent = await page.getTextContent()
+        const textParts = textContent.items.flatMap((item) => {
+          const text = item.str?.trim() ?? ""
 
-      if (pageText) {
-        pages.push(`Page ${pageNumber}: ${pageText}`)
+          return text ? [text] : []
+        })
+
+        return textParts.length > 0
+          ? `Page ${pageNumber}: ${textParts.join(" ")}`
+          : ""
+      })
+    )
+    let textLength = 0
+
+    for (const pageText of extractedPages) {
+      if (!pageText) {
+        continue
       }
 
-      if (pages.join("\n\n").length >= MAX_REFERENCE_TEXT_LENGTH) {
+      pages.push(pageText)
+      textLength += pageText.length + 2
+
+      if (textLength >= MAX_REFERENCE_TEXT_LENGTH) {
         break
       }
     }

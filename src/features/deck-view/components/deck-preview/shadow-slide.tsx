@@ -30,10 +30,14 @@ export function ShadowSlide({
     }
 
     const root = host.shadowRoot ?? host.attachShadow({ mode: "open" })
+    const previewDocument = new DOMParser().parseFromString(
+      `<!doctype html><html><head>${headHtml}</head><body ${bodyAttributes}>${slideHtml}</body></html>`,
+      "text/html"
+    )
+    sanitizePreviewDocument(previewDocument)
 
-    root.innerHTML = `
-      ${headHtml}
-      <style>
+    const previewStyles = document.createElement("style")
+    previewStyles.textContent = `
         :host {
           display: block;
           overflow: hidden;
@@ -58,13 +62,24 @@ export function ShadowSlide({
         .slide-preview-frame > .slide-preview-body > .slide-page {
           margin: 0 !important;
         }
-      </style>
-      <div class="slide-preview-frame">
-        <body ${bodyAttributes}>
-          ${slideHtml}
-        </body>
-      </div>
     `
+    const previewFrame = document.createElement("div")
+    const previewBody = document.importNode(previewDocument.body, false)
+
+    previewFrame.className = "slide-preview-frame"
+    previewBody.append(
+      ...Array.from(previewDocument.body.childNodes, (node) =>
+        document.importNode(node, true)
+      )
+    )
+    root.replaceChildren(
+      ...Array.from(previewDocument.head.childNodes, (node) =>
+        document.importNode(node, true)
+      ),
+      previewStyles,
+      previewFrame
+    )
+    previewFrame.append(previewBody)
   }, [bodyAttributes, headHtml, slideHtml])
 
   return (
@@ -86,4 +101,18 @@ export function ShadowSlide({
       aria-label="Generated deck slide"
     />
   )
+}
+
+function sanitizePreviewDocument(document: Document) {
+  for (const script of Array.from(document.querySelectorAll("script"))) {
+    script.remove()
+  }
+
+  for (const element of Array.from(document.querySelectorAll("*"))) {
+    for (const attribute of Array.from(element.attributes)) {
+      if (/^on/i.test(attribute.name)) {
+        element.removeAttribute(attribute.name)
+      }
+    }
+  }
 }

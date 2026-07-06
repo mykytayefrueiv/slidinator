@@ -5,8 +5,6 @@ import { z } from "zod"
 import { DeckGenerationUserError, toUserFacingError } from "./generation-errors"
 import { getGeneratedDeck } from "./history-store"
 import type { DeckGenerationInput } from "./types"
-import type * as EditDeckModule from "./edit-deck"
-import type * as PdfExportModule from "./pdf/export-html-to-pdf"
 
 const PdfFileSchema = z.instanceof(File, {
   message: "PDF file is required.",
@@ -121,10 +119,8 @@ export const editDeck = createServerFn({ method: "POST" })
 export async function exportDeckPdfBytes({
   deckHtml,
 }: z.infer<typeof ExportDeckPdfSchema>) {
-  const pdfExporterPath = "./pdf/export-html-to-pdf"
-  const { InvalidDeckHtmlForPdfError, exportHtmlDeckToPdf } = (await import(
-    /* @vite-ignore */ pdfExporterPath
-  )) as typeof PdfExportModule
+  const { InvalidDeckHtmlForPdfError, exportHtmlDeckToPdf } =
+    await import("./pdf/export-html-to-pdf")
 
   try {
     const pdfBytes = await exportHtmlDeckToPdf({ deckHtml })
@@ -142,10 +138,7 @@ export async function exportDeckPdfBytes({
 }
 
 export async function editDeckData(data: z.infer<typeof EditDeckSchema>) {
-  const editDeckPath = "./edit-deck"
-  const { editDeck: editDeckArtifact } = (await import(
-    /* @vite-ignore */ editDeckPath
-  )) as typeof EditDeckModule
+  const { editDeck: editDeckArtifact } = await import("./edit-deck")
 
   try {
     return await editDeckArtifact(data)

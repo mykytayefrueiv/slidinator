@@ -46,9 +46,7 @@ export type DeckEditUserMessage = {
 }
 
 export type DeckAiMessage =
-  | DeckUserMessage
-  | DeckEditUserMessage
-  | DeckAssistantMessage
+  DeckUserMessage | DeckEditUserMessage | DeckAssistantMessage
 
 export type DeckHistoryStore = Partial<Record<string, Array<DeckAiMessage>>>
 

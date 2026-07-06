@@ -37,9 +37,6 @@ export function assertPdfFile(file: File, label: string) {
     file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")
 
   if (!isPdf) {
-    throw new DeckGenerationUserError(
-      "upload",
-      `${label} must be a PDF file.`
-    )
+    throw new DeckGenerationUserError("upload", `${label} must be a PDF file.`)
   }
 }

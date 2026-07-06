@@ -1,12 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 
 import { MAIN_PADDING, SLIDE_HEIGHT, SLIDE_WIDTH } from "./constants"
-import {
-  SelectionOverlay,
-  SelectionPromptPanel,
-} from "./selection"
 import type { AreaSelection } from "@/server/deck-generation/types"
-import type { SlideSelection } from "./selection"
+import { SelectionOverlay } from "./selection/overlay"
+import { SelectionPromptPanel } from "./selection/prompt-panel"
+import type { SlideSelection } from "./selection/types"
 import { ShadowSlide } from "./shadow-slide"
 import { SlideNavigation } from "./slide-navigation"
 import { SlideThumbnail } from "./slide-thumbnail"
@@ -16,6 +14,10 @@ type DeckPreviewProps = {
   html: string
   isSubmittingEdit?: boolean
   onSubmitEdit?: (selections: Array<AreaSelection>) => Promise<unknown>
+}
+
+function createSelectionId() {
+  return "selection-" + crypto.randomUUID()
 }
 
 export function DeckPreview({
@@ -75,11 +77,6 @@ export function DeckPreview({
     return () => resizeObserver.disconnect()
   }, [])
 
-  useEffect(() => {
-    setSelections([])
-    setActiveSelectionId(null)
-  }, [html])
-
   const activeSlide = slides[activeSlideIndex] ?? ""
   const activeSlideId = `slide-${activeSlideIndex + 1}`
   const activeSlideSelections = selections.filter(
@@ -88,15 +85,13 @@ export function DeckPreview({
   const promptedSelections = selections.filter((selection) =>
     selection.prompt.trim()
   )
-  const createSelectionId = () =>
-    "selection-" + crypto.randomUUID()
 
   return (
     <div className="grid h-full min-h-[440px] grid-cols-[116px_1fr] overflow-hidden rounded-lg border border-slate-200 bg-slate-100 shadow-inner">
       <div className="flex min-h-0 flex-col items-center gap-4 overflow-y-auto border-r border-slate-200 bg-white/80 px-3 py-4">
         {slides.map((slideHtml, index) => (
           <SlideThumbnail
-            key={index}
+            key={`slide-${index + 1}-${slideHtml}`}
             bodyAttributes={bodyAttributes}
             headHtml={headHtml}
             slideHtml={slideHtml}
@@ -185,14 +180,20 @@ export function DeckPreview({
             )
           }}
           onRemove={(selectionId) => {
-            setSelections((currentSelections) =>
-              currentSelections
-                .filter((selection) => selection.id !== selectionId)
-                .map((selection, index) => ({
-                  ...selection,
-                  order: index + 1,
-                }))
-            )
+            setSelections((currentSelections) => {
+              const nextSelections: Array<SlideSelection> = []
+
+              for (const selection of currentSelections) {
+                if (selection.id !== selectionId) {
+                  nextSelections.push({
+                    ...selection,
+                    order: nextSelections.length + 1,
+                  })
+                }
+              }
+
+              return nextSelections
+            })
             setActiveSelectionId((currentSelectionId) =>
               currentSelectionId === selectionId ? null : currentSelectionId
             )

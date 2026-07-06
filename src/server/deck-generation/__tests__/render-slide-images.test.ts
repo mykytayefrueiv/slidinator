@@ -67,8 +67,7 @@ describe("slide image rendering", () => {
   })
 
   test("renders unique slide IDs derived from selections with PDF export geometry", async () => {
-    const { renderSlideImagesForSelections } =
-      await importSlideImageRenderer()
+    const { renderSlideImagesForSelections } = await importSlideImageRenderer()
 
     const images = await renderSlideImagesForSelections({
       deckHtml: validDeckHtml,
@@ -142,8 +141,7 @@ describe("slide image rendering", () => {
   })
 
   test("adds selection overlays before screenshotting selection-derived slide images", async () => {
-    const { renderSlideImagesForSelections } =
-      await importSlideImageRenderer()
+    const { renderSlideImagesForSelections } = await importSlideImageRenderer()
 
     await renderSlideImagesForSelections({
       deckHtml: validDeckHtml,
@@ -169,9 +167,8 @@ describe("slide image rendering", () => {
 })
 
 async function importSlideImageRenderer() {
-  const module: typeof SlideImageModule = await import(
-    "@/server/deck-generation/pdf/render-slide-images"
-  )
+  const module: typeof SlideImageModule =
+    await import("@/server/deck-generation/pdf/render-slide-images")
 
   return module
 }

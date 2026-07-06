@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react"
-import { useMutation } from "@tanstack/react-query"
+import { useState } from "react"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useNavigate } from "@tanstack/react-router"
 import { useServerFn } from "@tanstack/react-start"
 
@@ -18,13 +18,12 @@ type GeneratedDeckPageProps = {
 
 export function GeneratedDeckPage({ deck }: GeneratedDeckPageProps) {
   const navigate = useNavigate()
-  const [currentDeck, setCurrentDeck] = useState(deck)
+  const queryClient = useQueryClient()
+  const [editedDeck, setEditedDeck] = useState<GenerateDeckResult | null>(null)
   const exportDeckPdfServerFn = useServerFn(exportDeckPdf)
   const editDeckServerFn = useServerFn(editDeck)
-
-  useEffect(() => {
-    setCurrentDeck(deck)
-  }, [deck])
+  const currentDeck =
+    editedDeck?.artifactId === deck.artifactId ? editedDeck : deck
 
   const exportPdfMutation = useMutation({
     mutationFn: (deckHtml: string) =>
@@ -40,13 +39,15 @@ export function GeneratedDeckPage({ deck }: GeneratedDeckPageProps) {
       link.download = "slidinator-deck.pdf"
       link.click()
       URL.revokeObjectURL(objectUrl)
+      void queryClient.invalidateQueries()
     },
   })
   const editDeckMutation = useMutation({
     mutationFn: (request: EditDeckRequest) =>
       editDeckServerFn({ data: request }),
     onSuccess: (updatedDeck) => {
-      setCurrentDeck(updatedDeck)
+      setEditedDeck(updatedDeck)
+      void queryClient.invalidateQueries()
     },
   })
   const error =

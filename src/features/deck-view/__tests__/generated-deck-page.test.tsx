@@ -92,7 +92,9 @@ vi.mock("../components/deck-preview", () => ({
 }))
 
 const editDeckActionMock = serverFunctionMocks.editDeckAction as ReturnType<
-  typeof vi.fn<(input: { data: EditDeckRequest }) => Promise<GenerateDeckResult>>
+  typeof vi.fn<
+    (input: { data: EditDeckRequest }) => Promise<GenerateDeckResult>
+  >
 >
 const exportDeckPdfActionMock =
   serverFunctionMocks.exportDeckPdfAction as ReturnType<

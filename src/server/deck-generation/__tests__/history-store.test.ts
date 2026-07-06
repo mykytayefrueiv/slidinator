@@ -1,9 +1,6 @@
 import { beforeEach, describe, expect, test } from "vitest"
 
-import {
-  EXAMPLE_DECK_ID,
-  exampleGeneratedDeck,
-} from "../example-deck"
+import { EXAMPLE_DECK_ID, exampleGeneratedDeck } from "../example-deck"
 import {
   clearDeckHistoryForTests,
   getDeckHistory,
