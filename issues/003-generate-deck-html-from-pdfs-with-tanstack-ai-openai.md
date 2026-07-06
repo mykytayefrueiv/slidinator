@@ -1,4 +1,4 @@
-# Generate Deck HTML from PDFs with TanStack AI and OpenAI
+# Generate Deck HTML from PDFs with TanStack AI and OpenAI via openrouter 
 
 Labels: ready-for-agent
 
@@ -9,6 +9,9 @@ Parent PRD: `docs/prd/pdf-guided-pharma-slide-deck-prototype.md`
 ## What to build
 
 Implement the real server-side generation route. The route should accept multipart form input, extract factual content from the reference PDF, derive visual style guidance from the design PDF, and compose a complete raw HTML deck artifact using TanStack AI with OpenAI as the first provider. The route should validate the generated HTML, run one repair attempt if needed, and return the validated HTML artifact to the client.
+
+## Additional info
+https://tanstack.com/ai/latest/docs/getting-started/overview
 
 ## Acceptance criteria
 

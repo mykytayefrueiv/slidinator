@@ -1,6 +1,6 @@
 # Create the Upload-to-Mock-Preview Skeleton
 
-Labels: ready-for-agent
+Labels: done
 
 ## Parent
 
@@ -12,13 +12,13 @@ Create the first end-to-end UI slice for the prototype without real AI generatio
 
 ## Acceptance criteria
 
-- [ ] The main screen contains inputs for reference PDF, design PDF, extra prompt, optional style URL, and a generate action.
-- [ ] The generate action uses TanStack Query mutation state for loading, success, and error UI.
-- [ ] A mocked valid HTML deck can be returned through the same client contract intended for real generation.
-- [ ] The mocked deck renders in a Shadow DOM preview host, not an iframe.
-- [ ] The preview includes 2-3 `.slide-page` sections so downstream validation/export work has realistic markup to use.
-- [ ] Required-file validation prevents submission without both PDFs.
-- [ ] Focused UI tests cover the basic form, loading state, error state, and preview success state.
+- [x] The main screen contains inputs for reference PDF, design PDF, extra prompt, optional style URL, and a generate action.
+- [x] The generate action uses TanStack Query mutation state for loading, success, and error UI.
+- [x] A mocked valid HTML deck can be returned through the same client contract intended for real generation.
+- [x] The mocked deck renders in a Shadow DOM preview host, not an iframe.
+- [x] The preview includes 2-3 `.slide-page` sections so downstream validation/export work has realistic markup to use.
+- [x] Required-file validation prevents submission without both PDFs.
+- [x] Focused UI tests cover the basic form, loading state, error state, and preview success state.
 
 ## Blocked by
 

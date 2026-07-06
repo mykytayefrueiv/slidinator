@@ -1,18 +1,11 @@
-import type { GenerateDeckResult } from "./types"
-
-type MockDeckInput = {
-  referenceFile: File
-  designFile: File
-  extraPrompt: string
-  styleUrl: string
-}
+import type { DeckGenerationInput, GenerateDeckResult } from "./types"
 
 export async function createMockDeck({
   referenceFile,
   designFile,
   extraPrompt,
   styleUrl,
-}: MockDeckInput): Promise<GenerateDeckResult> {
+}: DeckGenerationInput): Promise<GenerateDeckResult> {
   const referenceFileName = referenceFile.name || "reference.pdf"
   const designFileName = designFile.name || "design.pdf"
   const promptText =
