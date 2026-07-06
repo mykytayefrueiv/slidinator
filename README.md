@@ -10,6 +10,10 @@ Slidinator is a TanStack Start prototype that turns two PDFs into a short pharma
 
 The generated HTML is the source artifact. PDF is only the export format.
 
+## PDF Result Examples
+
+You can result PDF examples in `result-examples/`
+
 ## Project Docs
 
 - PRD: `docs/prd/pdf-guided-pharma-slide-deck-prototype.md`
